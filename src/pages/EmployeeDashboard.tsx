@@ -155,30 +155,36 @@ const EmployeeDashboard: React.FC = () => {
       {/* Header */}
       <header className="bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
-                <Building2 className="h-8 w-8 text-white" />
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center h-auto sm:h-20 py-4 sm:py-0 gap-4 sm:gap-0">
+            {/* Logo and Title Section */}
+            <div className="flex items-center space-x-3 sm:space-x-4 w-full sm:w-auto">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm shrink-0">
+                <Building2 className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
               </div>
-              <div>
-                <h1 className="text-2xl font-bold text-white">
-                  Hệ thống Quản lý Nghỉ phép
+              <div className="min-w-0 flex-1 sm:flex-none">
+                <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-white leading-tight">
+                  Hệ thống Quản lý
+                  <br className="sm:hidden" />
+                  <span className="sm:ml-1">Nghỉ phép</span>
                 </h1>
-                <p className="text-green-100">Giao diện nhân viên</p>
+                <p className="text-xs sm:text-sm text-green-100 mt-1">Giao diện nhân viên</p>
               </div>
             </div>
-            <div className="flex items-center space-x-4">
-              <div className="text-right text-white">
-                <p className="text-sm font-medium">{user?.name}</p>
-                <p className="text-xs text-green-100">{(user as Employee)?.department}</p>
+            
+            {/* User Info and Logout Section */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
+              <div className="text-left sm:text-right text-white w-full sm:w-auto">
+                <p className="text-sm font-medium truncate">{user?.name}</p>
+                <p className="text-xs text-green-100 truncate">{(user as Employee)?.department}</p>
               </div>
               <Button 
                 variant="outline" 
                 size="sm" 
                 onClick={logout}
-                className="border-white/30 bg-transparent text-white hover:bg-white/20 backdrop-blur-sm"
+                className="border-white/30 bg-transparent text-white hover:bg-white/20 backdrop-blur-sm w-full sm:w-auto"
               >
-                Đăng xuất
+                <span className="hidden xs:inline">Đăng xuất</span>
+                <span className="xs:hidden">Thoát</span>
               </Button>
             </div>
           </div>
@@ -188,7 +194,7 @@ const EmployeeDashboard: React.FC = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Tổng đơn</CardTitle>
@@ -232,24 +238,27 @@ const EmployeeDashboard: React.FC = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="calendar" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-1 md:grid-cols-3 h-auto p-1 bg-gray-100 rounded-xl">
+          <TabsList className="grid w-full grid-cols-3 md:grid-cols-3 h-auto p-1 bg-gray-100 rounded-xl gap-1">
             <TabsTrigger 
               value="calendar" 
-              className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 rounded-lg transition-all duration-200"
+              className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 rounded-lg transition-all duration-200 text-xs sm:text-sm py-2"
             >
-              Lịch nghỉ phép
+              <span className="hidden xs:inline">Lịch nghỉ phép</span>
+              <span className="xs:hidden">Lịch</span>
             </TabsTrigger>
             <TabsTrigger 
               value="request" 
-              className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-green-600 rounded-lg transition-all duration-200"
+              className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-green-600 rounded-lg transition-all duration-200 text-xs sm:text-sm py-2"
             >
-              Đăng ký nghỉ phép
+              <span className="hidden xs:inline">Đăng ký nghỉ phép</span>
+              <span className="xs:hidden">Đăng ký</span>
             </TabsTrigger>
             <TabsTrigger 
               value="history" 
-              className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-purple-600 rounded-lg transition-all duration-200"
+              className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-purple-600 rounded-lg transition-all duration-200 text-xs sm:text-sm py-2"
             >
-              Lịch sử đơn
+              <span className="hidden xs:inline">Lịch sử đơn</span>
+              <span className="xs:hidden">Lịch sử</span>
             </TabsTrigger>
           </TabsList>
 

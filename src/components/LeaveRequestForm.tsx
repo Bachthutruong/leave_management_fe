@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAuthStore } from '@/store/authStore';
 import { leaveRequestAPI, halfDayOptionsAPI } from '@/services/api';
 import { HalfDayOption } from '@/types';
-import { Upload, X, FileText, Calendar, User, Building2, CalendarDays, Clock, MapPin } from 'lucide-react';
+import { Upload, X, FileText, Calendar, User, Building2, CalendarDays, Clock, MapPin, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import MiniCalendar from './MiniCalendar';
 
@@ -28,7 +28,6 @@ const LeaveRequestForm: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [attachments, setAttachments] = useState<File[]>([]);
   const [halfDayOptions, setHalfDayOptions] = useState<HalfDayOption[]>([]);
-  // const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [showMiniCalendar, setShowMiniCalendar] = useState(false);
 
@@ -37,22 +36,43 @@ const LeaveRequestForm: React.FC = () => {
     handleSubmit,
     watch,
     setValue,
-    formState: { errors },
+    formState: { errors, isValid },
     reset,
+    trigger,
   } = useForm<LeaveRequestFormData>({
     defaultValues: {
       leaveType: 'full_day',
       startDate: new Date().toISOString().split('T')[0],
       endDate: new Date().toISOString().split('T')[0],
     },
+    mode: 'onChange',
   });
 
   const leaveType = watch('leaveType');
   const startDate = watch('startDate');
   const endDate = watch('endDate');
 
-  useEffect(() => {
-    loadHalfDayOptions();
+  // Memoized functions for better performance
+  const loadHalfDayOptions = useCallback(async () => {
+    try {
+      const options = await halfDayOptionsAPI.getAll();
+      setHalfDayOptions(options);
+    } catch (error) {
+      console.error('Failed to load half-day options:', error);
+    }
+  }, []);
+
+  const formatDate = useCallback((date: Date) => {
+    return date.toLocaleDateString('vi-VN', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short'
+    });
+  }, []);
+
+  const isWeekend = useCallback((date: Date) => {
+    const day = date.getDay();
+    return day === 0 || day === 6;
   }, []);
 
   // Update selectedDates when form dates change
@@ -67,62 +87,66 @@ const LeaveRequestForm: React.FC = () => {
       }
       
       setSelectedDates(dates);
+    } else {
+      setSelectedDates([]);
     }
   }, [startDate, endDate]);
 
-  const loadHalfDayOptions = async () => {
-    try {
-      const options = await halfDayOptionsAPI.getAll();
-      setHalfDayOptions(options);
-    } catch (error) {
-      console.error('Failed to load half-day options:', error);
-    }
-  };
+  useEffect(() => {
+    loadHalfDayOptions();
+  }, [loadHalfDayOptions]);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
-    setAttachments(prev => [...prev, ...files]);
-  };
-
-  const removeFile = (index: number) => {
-    setAttachments(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('vi-VN', {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short'
+    const validFiles = files.filter(file => {
+      const maxSize = 10 * 1024 * 1024; // 10MB
+      if (file.size > maxSize) {
+        toast.error(`File ${file.name} quá lớn (tối đa 10MB)`);
+        return false;
+      }
+      return true;
     });
-  };
+    
+    if (validFiles.length > 0) {
+      setAttachments(prev => [...prev, ...validFiles]);
+      toast.success(`Đã thêm ${validFiles.length} file`);
+    }
+  }, []);
 
-  const isWeekend = (date: Date) => {
-    const day = date.getDay();
-    return day === 0 || day === 6; // Sunday or Saturday
-  };
+  const removeFile = useCallback((index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+  }, []);
 
-  const handleSingleDateSelect = (date: Date) => {
+  const handleSingleDateSelect = useCallback((date: Date) => {
     const dateStr = date.toISOString().split('T')[0];
     setValue('startDate', dateStr);
     setValue('endDate', dateStr);
     setShowMiniCalendar(false);
-  };
+    trigger(); // Trigger validation
+  }, [setValue, trigger]);
 
-  const handleDateRangeSelect = (startDate: Date, endDate: Date) => {
+  const handleDateRangeSelect = useCallback((startDate: Date, endDate: Date) => {
     const startStr = startDate.toISOString().split('T')[0];
     const endStr = endDate.toISOString().split('T')[0];
     setValue('startDate', startStr);
     setValue('endDate', endStr);
     setShowMiniCalendar(false);
-  };
+    trigger(); // Trigger validation
+  }, [setValue, trigger]);
 
-  const handleClearDates = () => {
+  const handleClearDates = useCallback(() => {
     setValue('startDate', '');
     setValue('endDate', '');
     setSelectedDates([]);
-  };
+    trigger(); // Trigger validation
+  }, [setValue, trigger]);
 
   const onSubmit = async (data: LeaveRequestFormData) => {
+    if (!isValid) {
+      toast.error('Vui lòng kiểm tra lại thông tin');
+      return;
+    }
+
     setIsLoading(true);
     try {
       const formData = new FormData();
@@ -142,6 +166,8 @@ const LeaveRequestForm: React.FC = () => {
 
       await leaveRequestAPI.create(formData);
       toast.success('Đơn xin nghỉ đã được gửi thành công!');
+      
+      // Reset form
       reset();
       setAttachments([]);
       setSelectedDates([]);
@@ -157,6 +183,10 @@ const LeaveRequestForm: React.FC = () => {
     }
   };
 
+  const totalFileSize = attachments.reduce((total, file) => total + file.size, 0);
+  const maxTotalSize = 50 * 1024 * 1024; // 50MB total
+  const isFileSizeExceeded = totalFileSize > maxTotalSize;
+
   return (
     <Card className="w-full bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 shadow-lg">
       <CardHeader className="bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-t-lg">
@@ -169,14 +199,14 @@ const LeaveRequestForm: React.FC = () => {
         </CardDescription>
       </CardHeader>
       
-      <CardContent className="p-6">
+      <CardContent className="p-4 sm:p-6">
         {/* Employee Info */}
         <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
           <div className="flex items-center gap-3 mb-3">
             <User className="h-5 w-5 text-blue-600" />
             <h3 className="font-semibold text-blue-800">Thông tin nhân viên</h3>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-blue-700">Mã nhân viên:</span>
               <span className="text-sm text-blue-600 bg-blue-100 px-2 py-1 rounded-md">
@@ -189,7 +219,7 @@ const LeaveRequestForm: React.FC = () => {
                 {employee?.name}
               </span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 sm:col-span-2">
               <Building2 className="h-4 w-4 text-blue-600" />
               <span className="text-sm font-medium text-blue-700">Phòng ban:</span>
               <span className="text-sm text-blue-600 bg-blue-100 px-2 py-1 rounded-md">
@@ -204,7 +234,7 @@ const LeaveRequestForm: React.FC = () => {
           <div className="space-y-3">
             <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
               <Calendar className="h-4 w-4 text-green-600" />
-              Loại nghỉ phép
+              Loại nghỉ phép <span className="text-red-500">*</span>
             </label>
             <Select
               value={leaveType}
@@ -239,7 +269,9 @@ const LeaveRequestForm: React.FC = () => {
           {/* Half Day Type (if applicable) */}
           {leaveType === 'half_day' && (
             <div className="space-y-3">
-              <label className="text-sm font-medium text-gray-700">Buổi nghỉ</label>
+              <label className="text-sm font-medium text-gray-700">
+                Buổi nghỉ <span className="text-red-500">*</span>
+              </label>
               <Select
                 value={watch('halfDayType')}
                 onValueChange={(value: 'morning' | 'afternoon' | 'evening') => setValue('halfDayType', value)}
@@ -247,24 +279,24 @@ const LeaveRequestForm: React.FC = () => {
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Chọn buổi nghỉ" />
                 </SelectTrigger>
-                                 <SelectContent>
-                   {halfDayOptions.map((option) => (
-                     <SelectItem key={option._id} value={option.code}>
-                       {option.label}
-                     </SelectItem>
-                   ))}
-                 </SelectContent>
+                <SelectContent>
+                  {halfDayOptions.map((option) => (
+                    <SelectItem key={option._id} value={option.code}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </div>
           )}
 
           {/* Time Selection (if hourly) */}
           {leaveType === 'hourly' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-3">
                 <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
                   <Clock className="h-4 w-4 text-blue-600" />
-                  Giờ bắt đầu
+                  Giờ bắt đầu <span className="text-red-500">*</span>
                 </label>
                 <Input
                   type="time"
@@ -278,7 +310,7 @@ const LeaveRequestForm: React.FC = () => {
               <div className="space-y-3">
                 <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
                   <Clock className="h-4 w-4 text-blue-600" />
-                  Giờ kết thúc
+                  Giờ kết thúc <span className="text-red-500">*</span>
                 </label>
                 <Input
                   type="time"
@@ -297,7 +329,7 @@ const LeaveRequestForm: React.FC = () => {
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
                 <CalendarDays className="h-4 w-4 text-green-600" />
-                Chọn ngày nghỉ
+                Chọn ngày nghỉ <span className="text-red-500">*</span>
               </label>
               <Button
                 type="button"
@@ -324,7 +356,7 @@ const LeaveRequestForm: React.FC = () => {
               </div>
             )}
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-xs text-gray-600">Từ ngày</label>
                 <Input
@@ -416,7 +448,18 @@ const LeaveRequestForm: React.FC = () => {
               <Upload className="h-4 w-4 text-purple-600" />
               Tài liệu đính kèm (tùy chọn)
             </label>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-purple-400 transition-colors">
+            
+            {/* File size warning */}
+            {isFileSizeExceeded && (
+              <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <AlertCircle className="h-4 w-4 text-red-600" />
+                <span className="text-sm text-red-700">
+                  Tổng dung lượng file quá lớn ({(totalFileSize / 1024 / 1024).toFixed(1)}MB / 50MB)
+                </span>
+              </div>
+            )}
+            
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 sm:p-6 text-center hover:border-purple-400 transition-colors">
               <input
                 type="file"
                 multiple
@@ -434,7 +477,10 @@ const LeaveRequestForm: React.FC = () => {
                   Click để chọn file hoặc kéo thả vào đây
                 </span>
                 <span className="text-xs text-gray-500">
-                  Hỗ trợ: JPG, PNG, PDF, DOC, DOCX (tối đa 10MB/file)
+                  Hỗ trợ: JPG, PNG, PDF, DOC, DOCX (tối đa 10MB/file, tổng 50MB)
+                </span>
+                <span className="text-xs text-gray-400">
+                  Đã sử dụng: {(totalFileSize / 1024 / 1024).toFixed(1)}MB
                 </span>
               </label>
             </div>
@@ -442,7 +488,7 @@ const LeaveRequestForm: React.FC = () => {
             {/* File List */}
             {attachments.length > 0 && (
               <div className="space-y-2">
-                <h4 className="text-sm font-medium text-gray-700">Files đã chọn:</h4>
+                <h4 className="text-sm font-medium text-gray-700">Files đã chọn ({attachments.length}):</h4>
                 {attachments.map((file, index) => (
                   <div
                     key={index}
@@ -450,7 +496,7 @@ const LeaveRequestForm: React.FC = () => {
                   >
                     <div className="flex items-center gap-2">
                       <FileText className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm text-gray-700">{file.name}</span>
+                      <span className="text-sm text-gray-700 truncate max-w-[200px]">{file.name}</span>
                       <span className="text-xs text-gray-500">
                         ({(file.size / 1024 / 1024).toFixed(2)} MB)
                       </span>
@@ -460,7 +506,7 @@ const LeaveRequestForm: React.FC = () => {
                       variant="outline"
                       size="sm"
                       onClick={() => removeFile(index)}
-                      className="h-6 w-6 p-0 text-red-600 hover:bg-red-50"
+                      className="h-6 w-6 p-0 text-red-600 hover:bg-red-50 shrink-0"
                     >
                       <X className="h-3 w-3" />
                     </Button>
@@ -473,8 +519,8 @@ const LeaveRequestForm: React.FC = () => {
           {/* Submit Button */}
           <Button
             type="submit"
-            disabled={isLoading}
-            className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-medium py-3 text-lg shadow-lg hover:shadow-xl transition-all duration-200"
+            disabled={isLoading || !isValid || isFileSizeExceeded}
+            className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-medium py-3 text-lg shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? (
               <div className="flex items-center gap-2">

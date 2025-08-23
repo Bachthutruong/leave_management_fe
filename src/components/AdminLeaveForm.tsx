@@ -1,13 +1,14 @@
-import React, { useState, useEffect, useImperativeHandle, forwardRef } from 'react';
+import React, { useState, useEffect, useImperativeHandle, forwardRef, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Employee, LeaveRequest, HalfDayOption } from '@/types';
-import { Calendar, User, Building2, Clock, FileText, Save, X, Plus, Paperclip } from 'lucide-react';
+import { Calendar, User, Building2, Clock, FileText, Save, X, Plus, Paperclip, CalendarDays, MapPin } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AttachmentViewer from '@/components/AttachmentViewer';
+import MiniCalendar from '@/components/MiniCalendar';
 
 interface AdminLeaveFormData {
   employeeId: string;
@@ -57,6 +58,10 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
     reason: '',
     status: 'pending',
   });
+  
+  // Calendar state
+  const [selectedDates, setSelectedDates] = useState<string[]>([]);
+  const [showMiniCalendar, setShowMiniCalendar] = useState(false);
 
   useEffect(() => {
     loadHalfDayOptions();
@@ -366,6 +371,67 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
     return option ? option.label : code;
   };
 
+  // Calendar handlers
+  const handleSingleDateSelect = useCallback((date: string) => {
+    setFormData(prev => ({
+      ...prev,
+      startDate: date,
+      endDate: date
+    }));
+    setSelectedDates([date]);
+    setShowMiniCalendar(false);
+  }, []);
+
+  const handleDateRangeSelect = useCallback((startDate: string, endDate: string) => {
+    setFormData(prev => ({
+      ...prev,
+      startDate,
+      endDate
+    }));
+    
+    // Generate array of dates between start and end
+    const dates = [];
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      dates.push(d.toISOString().split('T')[0]);
+    }
+    
+    setSelectedDates(dates);
+    setShowMiniCalendar(false);
+  }, []);
+
+  const handleClearDates = useCallback(() => {
+    setFormData(prev => ({
+      ...prev,
+      startDate: '',
+      endDate: ''
+    }));
+    setSelectedDates([]);
+  }, []);
+
+  // Update selectedDates when startDate or endDate changes
+  useEffect(() => {
+    if (formData.startDate && formData.endDate) {
+      if (formData.startDate === formData.endDate) {
+        setSelectedDates([formData.startDate]);
+      } else {
+        const dates = [];
+        const start = new Date(formData.startDate);
+        const end = new Date(formData.endDate);
+        
+        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+          dates.push(d.toISOString().split('T')[0]);
+        }
+        
+        setSelectedDates(dates);
+      }
+    } else {
+      setSelectedDates([]);
+    }
+  }, [formData.startDate, formData.endDate]);
+
   const selectedEmployee = employees.find(emp => emp._id === formData.employeeId);
   
   // Expose functions to parent component
@@ -536,31 +602,99 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
             </div>
           )}
 
-          {/* Date Range */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
-                <Calendar className="h-4 w-4 text-indigo-600" />
-                <span>Từ ngày *</span>
-              </label>
-              <Input
-                type="date"
-                value={formData.startDate}
-                onChange={(e) => handleInputChange('startDate', e.target.value)}
-                className="border-indigo-300 focus:border-indigo-500 focus:ring-indigo-500"
-              />
+          {/* Date Selection */}
+          <div className="space-y-3">
+            <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+              <Calendar className="h-4 w-4 text-indigo-600" />
+              <span>Chọn ngày nghỉ *</span>
+            </label>
+            
+            {/* Calendar Toggle Button */}
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowMiniCalendar(!showMiniCalendar)}
+                className="border-indigo-300 text-indigo-600 hover:bg-indigo-50"
+              >
+                <CalendarDays className="h-4 w-4 mr-2" />
+                {showMiniCalendar ? 'Ẩn lịch' : 'Hiện lịch'}
+              </Button>
+              
+              {selectedDates.length > 0 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleClearDates}
+                  className="border-red-300 text-red-600 hover:bg-red-50"
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Xóa ngày
+                </Button>
+              )}
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
-                <Calendar className="h-4 w-4 text-indigo-600" />
-                <span>Đến ngày *</span>
-              </label>
-              <Input
-                type="date"
-                value={formData.endDate}
-                onChange={(e) => handleInputChange('endDate', e.target.value)}
-                className="border-green-300 focus:border-green-500 focus:ring-green-500"
-              />
+
+            {/* Mini Calendar */}
+            {showMiniCalendar && (
+              <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                <MiniCalendar
+                  selectedStartDate={formData.startDate ? new Date(formData.startDate) : null}
+                  selectedEndDate={formData.endDate ? new Date(formData.endDate) : null}
+                  onDateSelect={(date: Date) => handleSingleDateSelect(date.toISOString().split('T')[0])}
+                  onDateRangeSelect={(startDate: Date, endDate: Date) => handleDateRangeSelect(startDate.toISOString().split('T')[0], endDate.toISOString().split('T')[0])}
+                  onClearDates={handleClearDates}
+                  className="w-full"
+                />
+              </div>
+            )}
+
+            {/* Selected Dates Preview */}
+            {selectedDates.length > 0 && (
+              <div className="p-3 bg-indigo-50 rounded-lg border border-indigo-200">
+                <div className="flex items-center space-x-2 mb-2">
+                  <MapPin className="h-4 w-4 text-indigo-600" />
+                  <span className="text-sm font-medium text-indigo-800">Ngày đã chọn:</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {selectedDates.map((date, index) => (
+                    <span
+                      key={index}
+                      className="px-2 py-1 bg-indigo-100 text-indigo-800 text-xs font-medium rounded-full"
+                    >
+                      {new Date(date).toLocaleDateString('vi-VN')}
+                    </span>
+                  ))}
+                </div>
+                <div className="mt-2 text-xs text-indigo-600">
+                  Tổng cộng: {selectedDates.length} ngày
+                </div>
+              </div>
+            )}
+
+            {/* Manual Date Inputs (Fallback) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-600">
+                  Từ ngày (hoặc nhập thủ công)
+                </label>
+                <Input
+                  type="date"
+                  value={formData.startDate}
+                  onChange={(e) => handleInputChange('startDate', e.target.value)}
+                  className="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-600">
+                  Đến ngày (hoặc nhập thủ công)
+                </label>
+                <Input
+                  type="date"
+                  value={formData.endDate}
+                  onChange={(e) => handleInputChange('endDate', e.target.value)}
+                  className="border-gray-300 focus:border-green-500 focus:ring-green-500"
+                />
+              </div>
             </div>
           </div>
 

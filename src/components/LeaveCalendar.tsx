@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 
 import { leaveRequestAPI } from '@/services/api';
 import { CalendarEvent } from '@/types';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, RefreshCw, Smartphone } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, RefreshCw, Smartphone, X, Eye } from 'lucide-react';
 
 const LeaveCalendar: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -206,7 +206,15 @@ const LeaveCalendar: React.FC = () => {
             <div className="text-center">
               <CalendarIcon className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-gray-400 mb-4" />
               <p className="text-gray-500 text-sm sm:text-base">Không có dữ liệu lịch nghỉ phép</p>
-              <p className="text-xs sm:text-sm text-gray-400 mt-2">Vui lòng thử lại sau</p>
+              <p className="text-xs sm:text-sm text-gray-400 mt-2">Vui lòng thử lại sau hoặc tạo đơn xin nghỉ mới</p>
+              <Button 
+                onClick={fetchEvents} 
+                className="mt-4 bg-blue-600 hover:bg-blue-700 text-white"
+                size="sm"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Thử lại
+              </Button>
             </div>
           </div>
         ) : (
@@ -231,95 +239,67 @@ const LeaveCalendar: React.FC = () => {
               return (
                 <div
                   key={day.toISOString()}
-                  className={`min-h-[80px] sm:min-h-[100px] p-1 sm:p-2 border border-gray-200 rounded-lg transition-all duration-200 hover:shadow-md ${
+                  className={`min-h-[100px] sm:min-h-[120px] p-2 sm:p-3 border border-gray-200 rounded-lg transition-all duration-200 hover:shadow-md ${
                     isCurrentMonth ? 'bg-white' : 'bg-gray-50/50'
                   } ${isToday ? 'ring-2 ring-blue-500 bg-blue-50' : ''}`}
                 >
-                  <div className={`text-xs sm:text-sm font-medium mb-1 sm:mb-2 text-center ${
+                  {/* Date number */}
+                  <div className={`text-sm sm:text-base font-bold mb-2 text-center ${
                     isToday ? 'text-blue-600' : 'text-gray-700'
                   }`}>
                     {format(day, 'd')}
                   </div>
-                  <div className="space-y-0.5 sm:space-y-1">
+                  
+                  {/* Events container */}
+                  <div className="space-y-1.5 sm:space-y-2">
                     {/* Visible events */}
                     {visibleEvents.map((event, index) => (
                       <div
                         key={index}
-                        className={`text-xs p-1 sm:p-1.5 rounded-md truncate shadow-sm ${getLeaveTypeColor(event.leaveType, event.halfDayType)}`}
+                        className={`p-2 sm:p-2.5 rounded-md shadow-sm cursor-pointer hover:shadow-md transition-shadow ${getLeaveTypeColor(event.leaveType, event.halfDayType)}`}
                         title={`${event.employeeName} - ${event.department} - ${getLeaveTypeText(event.leaveType, event.halfDayType)}`}
+                        onClick={() => {
+                          // Show dropdown for this day
+                          const dayKey = format(day, 'yyyy-MM-dd');
+                          setOpenDropdown(openDropdown === dayKey ? null : dayKey);
+                        }}
                       >
-                        <div className="font-medium truncate text-[10px] sm:text-xs">
+                        {/* Employee name */}
+                        <div className="font-bold text-[12px] sm:text-sm mb-1 leading-tight">
                           {isMobileView ? event.employeeName.split(' ').slice(-1)[0] : event.employeeName}
                         </div>
-                        <div className="text-[10px] sm:text-xs opacity-90 truncate">
-                          {isMobileView ? event.department.substring(0, 2) : event.department}
+                        
+                        {/* Department */}
+                        <div className="text-[11px] sm:text-xs opacity-90 mb-1 leading-tight">
+                          {event.department}
                         </div>
-                        <div className="text-[10px] sm:text-xs opacity-75 truncate">
-                          {getLeaveTypeText(event.leaveType, event.halfDayType)}
+                        
+                        {/* Leave type */}
+                        <div className="text-[10px] sm:text-xs opacity-75 leading-tight">
+                          {isMobileView ? getLeaveTypeText(event.leaveType, event.halfDayType).substring(0, 4) : getLeaveTypeText(event.leaveType, event.halfDayType)}
                         </div>
                       </div>
                     ))}
                     
-                    {/* More events dropdown */}
+                    {/* More events button */}
                     {hasMoreEvents && (
-                      <div className="relative" ref={dropdownRef}>
-                        <button 
-                          className={`w-full text-[10px] sm:text-xs p-1 sm:p-1.5 rounded-md transition-colors ${
-                            openDropdown === format(day, 'yyyy-MM-dd')
-                              ? 'bg-blue-100 text-blue-700 border border-blue-200' 
-                              : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
-                          }`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const dayKey = format(day, 'yyyy-MM-dd');
-                            setOpenDropdown(openDropdown === dayKey ? null : dayKey);
-                          }}
-                        >
-                          +{remainingEvents.length} thêm
-                        </button>
-                        
-                        {openDropdown === format(day, 'yyyy-MM-dd') && (
-                          <div className={`absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-xl max-h-64 overflow-y-auto ${
-                            isMobileView ? 'w-72' : 'w-80'
-                          }`}>
-                            <div className="p-3 border-b bg-gray-50 sticky top-0">
-                              <h4 className="font-medium text-sm text-gray-900">
-                                Nghỉ phép ngày {format(day, 'dd/MM/yyyy', { locale: vi })}
-                              </h4>
-                              <p className="text-xs text-gray-500 mt-1">
-                                {dayEvents.length} nhân viên nghỉ phép
-                              </p>
-                            </div>
-                            <div className="p-2 space-y-2">
-                              {dayEvents.map((event, index) => (
-                                <div
-                                  key={index}
-                                  className="p-2 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors"
-                                >
-                                  <div className="flex items-start justify-between gap-2">
-                                    <div className="flex-1 min-w-0">
-                                      <div className="font-medium text-sm text-gray-900">
-                                        {event.employeeName}
-                                      </div>
-                                      <div className="text-xs text-gray-500">
-                                        {event.department}
-                                      </div>
-                                      {event.startTime && event.endTime && (
-                                        <div className="text-xs text-gray-400 mt-1">
-                                          {event.startTime} - {event.endTime}
-                                        </div>
-                                      )}
-                                    </div>
-                                    <div className={`text-xs px-2 py-1 rounded-full shrink-0 ${getLeaveTypeColor(event.leaveType, event.halfDayType)}`}>
-                                      {getLeaveTypeText(event.leaveType, event.halfDayType)}
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
+                      <button 
+                        className={`w-full text-[11px] sm:text-xs p-2 sm:p-2.5 rounded-md transition-colors font-bold border-2 border-dashed hover:border-solid ${
+                          openDropdown === format(day, 'yyyy-MM-dd')
+                            ? 'bg-blue-100 text-blue-700 border-blue-300' 
+                            : 'bg-gray-50 hover:bg-gray-100 text-gray-600 border-gray-300 hover:border-gray-400'
+                        }`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const dayKey = format(day, 'yyyy-MM-dd');
+                          setOpenDropdown(openDropdown === dayKey ? null : dayKey);
+                        }}
+                      >
+                        <div className="flex items-center justify-center gap-1">
+                          <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
+                          <span>+{remainingEvents.length} thêm</span>
+                        </div>
+                      </button>
                     )}
                   </div>
                 </div>
@@ -354,6 +334,66 @@ const LeaveCalendar: React.FC = () => {
           </div>
         </div>
       </CardContent>
+
+      {/* Global Dropdown for Events */}
+      {openDropdown && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Chi tiết nghỉ phép ngày {format(new Date(openDropdown), 'dd/MM/yyyy', { locale: vi })}
+              </h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setOpenDropdown(null)}
+                className="h-8 w-8 p-0 hover:bg-gray-100"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <div className="p-6">
+              {(() => {
+                const dayEvents = getEventsForDay(new Date(openDropdown));
+                return dayEvents.length > 0 ? (
+                  <div className="space-y-4">
+                    {dayEvents.map((event, index) => (
+                      <div
+                        key={index}
+                        className="p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="font-bold text-lg text-gray-900 mb-2">
+                              {event.employeeName}
+                            </div>
+                                                         <div className="space-y-1 text-sm text-gray-600">
+                               <div><span className="font-medium">Phòng ban:</span> {event.department}</div>
+                               <div><span className="font-medium">Loại nghỉ:</span> {getLeaveTypeText(event.leaveType, event.halfDayType)}</div>
+                               {event.startTime && event.endTime && (
+                                 <div><span className="font-medium">Thời gian:</span> {event.startTime} - {event.endTime}</div>
+                               )}
+                             </div>
+                          </div>
+                          <div className={`text-sm px-3 py-2 rounded-full shrink-0 font-medium ${getLeaveTypeColor(event.leaveType, event.halfDayType)}`}>
+                            {getLeaveTypeText(event.leaveType, event.halfDayType)}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <CalendarIcon className="mx-auto h-12 w-12 mb-4 opacity-50" />
+                    <p>Không có sự kiện nào trong ngày này</p>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
     </Card>
   );
 };

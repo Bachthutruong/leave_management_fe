@@ -2,6 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Custom breakpoint for extra small screens */
+@layer utilities {
+  @media (min-width: 475px) {
+    .xs\:inline {
+      display: inline;
+    }
+    .xs\:hidden {
+      display: none;
+    }
+  }
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

@@ -32,6 +32,8 @@ import {
   Filter,
   X,
   Eye,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
@@ -53,6 +55,10 @@ const EmployeeManagement: React.FC = () => {
   const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDepartment, setFilterDepartment] = useState('all');
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   useEffect(() => {
     loadEmployees();
@@ -118,6 +124,18 @@ const EmployeeManagement: React.FC = () => {
     const matchesDepartment = filterDepartment === 'all' || employee.department === filterDepartment;
     return matchesSearch && matchesDepartment;
   });
+
+  // Calculate pagination
+  const totalItems = filteredEmployees.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentEmployees = filteredEmployees.slice(startIndex, endIndex);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterDepartment]);
 
   const departments = [...new Set(employees.map(emp => emp.department))];
 
@@ -205,55 +223,55 @@ const EmployeeManagement: React.FC = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-          <CardContent className="p-4">
+          <CardContent className="p-3 md:p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-blue-600">Tổng nhân viên</p>
-                <p className="text-2xl font-bold text-blue-800">{employees.length}</p>
+                <p className="text-xs md:text-sm font-medium text-blue-600">Tổng nhân viên</p>
+                <p className="text-lg md:text-2xl font-bold text-blue-800">{employees.length}</p>
               </div>
-              <Users className="h-8 w-8 text-blue-600" />
+              <Users className="h-6 w-6 md:h-8 md:w-8 text-blue-600" />
             </div>
           </CardContent>
         </Card>
         
         <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-          <CardContent className="p-4">
+          <CardContent className="p-3 md:p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-green-600">Đang làm việc</p>
-                <p className="text-2xl font-bold text-green-800">
+                <p className="text-xs md:text-sm font-medium text-green-600">Đang làm việc</p>
+                <p className="text-lg md:text-2xl font-bold text-green-800">
                   {employees.filter(emp => emp.status === 'active').length}
                 </p>
               </div>
-              <CheckCircle className="h-8 w-8 text-green-600" />
+              <CheckCircle className="h-6 w-6 md:h-8 md:w-8 text-green-600" />
             </div>
           </CardContent>
         </Card>
         
         <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
-          <CardContent className="p-4">
+          <CardContent className="p-3 md:p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-red-600">Đã nghỉ việc</p>
+                <p className="text-xs md:text-sm font-medium text-red-600">Đã nghỉ việc</p>
                 <p className="text-2xl font-bold text-red-800">
                   {employees.filter(emp => emp.status === 'inactive').length}
                 </p>
               </div>
-              <XCircle className="h-8 w-8 text-red-600" />
+              <XCircle className="h-6 w-6 md:h-8 md:w-8 text-red-600" />
             </div>
           </CardContent>
         </Card>
         
         <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-          <CardContent className="p-4">
+          <CardContent className="p-3 md:p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-purple-600">Phòng ban</p>
-                <p className="text-2xl font-bold text-purple-800">{departments.length}</p>
+                <p className="text-xs md:text-sm font-medium text-purple-600">Phòng ban</p>
+                <p className="text-lg md:text-2xl font-bold text-purple-800">{departments.length}</p>
               </div>
-              <Building2 className="h-8 w-8 text-purple-600" />
+              <Building2 className="h-6 w-6 md:h-8 md:w-8 text-purple-600" />
             </div>
           </CardContent>
         </Card>
@@ -283,7 +301,7 @@ const EmployeeManagement: React.FC = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredEmployees.map((employee) => (
+                  {currentEmployees.map((employee) => (
                     <TableRow key={employee._id} className="hover:bg-muted/50">
                       <TableCell className="font-medium">
                         <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
@@ -344,6 +362,74 @@ const EmployeeManagement: React.FC = () => {
                   ))}
                 </TableBody>
               </Table>
+              
+              {/* Pagination Controls */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-t">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span>Hiển thị</span>
+                  <Select value={String(itemsPerPage)} onValueChange={(value) => setItemsPerPage(Number(value))}>
+                    <SelectTrigger className="w-20">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5">5</SelectItem>
+                      <SelectItem value="10">10</SelectItem>
+                      <SelectItem value="20">20</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <span>trên tổng số {totalItems} nhân viên</span>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Trước
+                  </Button>
+                  
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPage === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(pageNum)}
+                          className="w-8 h-8 p-0"
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Sau
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
               </div>
           )}
             </CardContent>
@@ -376,6 +462,10 @@ const LeaveManagement: React.FC = () => {
   const [selectedRequest, setSelectedRequest] = useState<LeaveRequest | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const leaveFormRef = useRef<AdminLeaveFormRef>(null);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   
   // Dialog states
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
@@ -575,10 +665,28 @@ const LeaveManagement: React.FC = () => {
     }
   };
 
+  // Filter and pagination logic
   const filteredRequests = leaveRequests.filter(request => {
     return request.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
            request.department.toLowerCase().includes(searchTerm.toLowerCase());
   });
+
+  // Calculate pagination
+  const totalItems = filteredRequests.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentRequests = filteredRequests.slice(startIndex, endIndex);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter, searchTerm]);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter, searchTerm]);
 
   if (isLoading) {
     return (
@@ -684,57 +792,57 @@ const LeaveManagement: React.FC = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-          <CardContent className="p-4">
+          <CardContent className="p-3 md:p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-blue-600">Tổng đơn</p>
-                <p className="text-2xl font-bold text-blue-800">{leaveRequests.length}</p>
-                  </div>
-              <FileText className="h-8 w-8 text-blue-600" />
-                    </div>
+                <p className="text-xs md:text-sm font-medium text-blue-600">Tổng đơn</p>
+                <p className="text-lg md:text-2xl font-bold text-blue-800">{leaveRequests.length}</p>
+              </div>
+              <FileText className="h-6 w-6 md:h-8 md:w-8 text-blue-600" />
+            </div>
           </CardContent>
         </Card>
         
         <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
-          <CardContent className="p-4">
+          <CardContent className="p-3 md:p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-yellow-600">Chờ duyệt</p>
-                <p className="text-2xl font-bold text-yellow-800">
+                <p className="text-xs md:text-sm font-medium text-yellow-600">Chờ duyệt</p>
+                <p className="text-lg md:text-2xl font-bold text-yellow-800">
                   {leaveRequests.filter(r => r.status === 'pending').length}
                 </p>
               </div>
-              <Clock className="h-8 w-8 text-yellow-600" />
+              <Clock className="h-6 w-6 md:h-8 md:w-8 text-yellow-600" />
             </div>
           </CardContent>
         </Card>
         
         <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-          <CardContent className="p-4">
+          <CardContent className="p-3 md:p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-green-600">Đã duyệt</p>
-                <p className="text-2xl font-bold text-green-800">
+                <p className="text-xs md:text-sm font-medium text-green-600">Đã duyệt</p>
+                <p className="text-lg md:text-2xl font-bold text-green-800">
                   {leaveRequests.filter(r => r.status === 'approved').length}
                 </p>
               </div>
-              <CheckCircle className="h-8 w-8 text-green-600" />
+              <CheckCircle className="h-6 w-6 md:h-8 md:w-8 text-green-600" />
             </div>
           </CardContent>
         </Card>
         
         <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
-          <CardContent className="p-4">
+          <CardContent className="p-3 md:p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-red-600">Từ chối</p>
-                <p className="text-2xl font-bold text-red-800">
+                <p className="text-xs md:text-sm font-medium text-red-600">Từ chối</p>
+                <p className="text-lg md:text-2xl font-bold text-red-800">
                   {leaveRequests.filter(r => r.status === 'rejected').length}
                 </p>
               </div>
-              <XCircle className="h-8 w-8 text-red-600" />
+              <XCircle className="h-6 w-6 md:h-8 md:w-8 text-red-600" />
             </div>
           </CardContent>
         </Card>
@@ -749,83 +857,84 @@ const LeaveManagement: React.FC = () => {
               <p className="text-gray-500">Không tìm thấy đơn xin nghỉ nào</p>
             </div>
           ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[150px]">Nhân viên</TableHead>
-                    <TableHead className="w-[120px]">Phòng ban</TableHead>
-                    <TableHead className="w-[120px]">Loại nghỉ</TableHead>
-                    <TableHead className="w-[150px]">Thời gian</TableHead>
-                    <TableHead className="w-[120px]">Trạng thái</TableHead>
-                    <TableHead className="w-[200px]">Lý do</TableHead>
-                    <TableHead className="w-[100px]">Tài liệu</TableHead>
-                    <TableHead className="w-[200px] text-center">Thao tác</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredRequests.map((request) => (
-                    <TableRow key={request._id} className="hover:bg-muted/50">
-                      <TableCell>
-                        <div className="font-medium">{request.employeeName}</div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
-                          {request.department}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm">{getLeaveTypeText(request.leaveType, request.halfDayType)}</span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm space-y-1">
-                          <div>Từ: {format(new Date(request.startDate), 'dd/MM/yyyy', { locale: vi })}</div>
-                          <div>Đến: {format(new Date(request.endDate), 'dd/MM/yyyy', { locale: vi })}</div>
-                          {request.startTime && request.endTime && (
-                            <div className="text-xs text-muted-foreground">
-                              {request.startTime} - {request.endTime}
+            <>
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[150px]">Nhân viên</TableHead>
+                      <TableHead className="w-[120px]">Phòng ban</TableHead>
+                      <TableHead className="w-[120px]">Loại nghỉ</TableHead>
+                      <TableHead className="w-[150px]">Thời gian</TableHead>
+                      <TableHead className="w-[120px]">Trạng thái</TableHead>
+                      <TableHead className="w-[200px]">Lý do</TableHead>
+                      <TableHead className="w-[100px]">Tài liệu</TableHead>
+                      <TableHead className="w-[200px] text-center">Thao tác</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {currentRequests.map((request) => (
+                      <TableRow key={request._id} className="hover:bg-muted/50">
+                        <TableCell>
+                          <div className="font-medium">{request.employeeName}</div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
+                            {request.department}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm">{getLeaveTypeText(request.leaveType, request.halfDayType)}</span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm space-y-1">
+                            <div>Từ: {format(new Date(request.startDate), 'dd/MM/yyyy', { locale: vi })}</div>
+                            <div>Đến: {format(new Date(request.endDate), 'dd/MM/yyyy', { locale: vi })}</div>
+                            {request.startTime && request.endTime && (
+                              <div className="text-xs text-muted-foreground">
+                                {request.startTime} - {request.endTime}
                       </div>
                     )}
                   </div>
-                      </TableCell>
-                      <TableCell>
-                        {getStatusBadge(request.status)}
-                      </TableCell>
-                      <TableCell>
-                        <div className="max-w-[180px]">
-                          <div className="text-sm truncate" title={request.reason || 'Không có lý do'}>
-                            {request.reason || 'Không có lý do'}
+                        </TableCell>
+                        <TableCell>
+                          {getStatusBadge(request.status)}
+                        </TableCell>
+                        <TableCell>
+                          <div className="max-w-[180px]">
+                            <div className="text-sm truncate" title={request.reason || 'Không có lý do'}>
+                              {request.reason || 'Không có lý do'}
                 </div>
-                          {request.rejectionReason && (
-                            <div className="text-xs text-red-600 mt-1 truncate" title={request.rejectionReason}>
-                              Lý do từ chối: {request.rejectionReason}
-                            </div>
+                            {request.rejectionReason && (
+                              <div className="text-xs text-red-600 mt-1 truncate" title={request.rejectionReason}>
+                                Lý do từ chối: {request.rejectionReason}
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {request.attachments && request.attachments.length > 0 ? (
+                            <button 
+                              onClick={() => handleViewDetails(request)}
+                              className="text-sm text-blue-600 hover:text-blue-800 underline"
+                            >
+                              {request.attachments.length} tài liệu
+                            </button>
+                          ) : (
+                            <div className="text-sm text-muted-foreground">Không có</div>
                           )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {request.attachments && request.attachments.length > 0 ? (
-                          <button 
-                            onClick={() => handleViewDetails(request)}
-                            className="text-sm text-blue-600 hover:text-blue-800 underline"
-                          >
-                            {request.attachments.length} tài liệu
-                          </button>
-                        ) : (
-                          <div className="text-sm text-muted-foreground">Không có</div>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center justify-center space-x-1">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleViewDetails(request)}
-                            className="h-8 w-8 p-0 border-indigo-300 text-indigo-600 hover:bg-indigo-50"
-                            title="Xem chi tiết"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-center space-x-1">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleViewDetails(request)}
+                              className="h-8 w-8 p-0 border-indigo-300 text-indigo-600 hover:bg-indigo-50"
+                              title="Xem chi tiết"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
 
                 {request.status === 'pending' && (
                             <>
@@ -869,12 +978,81 @@ const LeaveManagement: React.FC = () => {
                             <Trash2 className="h-4 w-4" />
                           </Button>
               </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Pagination Controls */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-t">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span>Hiển thị</span>
+                  <Select value={String(itemsPerPage)} onValueChange={(value) => setItemsPerPage(Number(value))}>
+                    <SelectTrigger className="w-20">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5">5</SelectItem>
+                      <SelectItem value="10">10</SelectItem>
+                      <SelectItem value="20">20</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <span>trên tổng số {totalItems} đơn</span>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Trước
+                  </Button>
+                  
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPage === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(pageNum)}
+                          className="w-8 h-8 p-0"
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Sau
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </>
           )}
             </CardContent>
           </Card>
@@ -1090,6 +1268,7 @@ const LeaveManagement: React.FC = () => {
 // Statistics Component
 const Statistics: React.FC = () => {
   const [statistics, setStatistics] = useState<any[]>([]);
+  const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
   const [period, setPeriod] = useState<'month' | 'quarter' | 'year'>('month');
   const [isLoading, setIsLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -1101,21 +1280,111 @@ const Statistics: React.FC = () => {
 
   const loadStatistics = async () => {
     try {
-      let value;
-      if (period === 'month') {
-        value = selectedYear * 100 + selectedMonth;
-      } else if (period === 'quarter') {
-        value = selectedYear * 10 + Math.ceil(selectedMonth / 3);
-      } else {
-        value = selectedYear;
-      }
-      const data = await leaveRequestAPI.getStatistics(period, value);
-      setStatistics(data);
+      setIsLoading(true);
+      
+      // Load all leave requests first
+      const allRequests = await leaveRequestAPI.getAll();
+      setLeaveRequests(allRequests);
+      
+      // Generate statistics from leave requests
+      const stats = generateStatisticsFromRequests(allRequests, period, selectedYear, selectedMonth);
+      setStatistics(stats);
+      
+      console.log('Generated statistics:', stats);
     } catch (error) {
+      console.error('Error loading statistics:', error);
       toast.error('Không thể tải thống kê');
+      
+      // Set demo data for testing
+      const demoStats = [
+        {
+          employeeId: 'EMP001',
+          employeeName: 'Nguyễn Văn An',
+          department: 'IT',
+          totalDays: 2.5,
+          fullDays: 2,
+          halfDays: 0.5,
+          hourlyLeaves: 0,
+          status: 'approved'
+        },
+        {
+          employeeId: 'EMP002',
+          employeeName: 'Trần Thị Bình',
+          department: 'HR',
+          totalDays: 1,
+          fullDays: 1,
+          halfDays: 0,
+          hourlyLeaves: 0,
+          status: 'pending'
+        }
+      ];
+      setStatistics(demoStats);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const generateStatisticsFromRequests = (requests: LeaveRequest[], period: string, year: number, month: number) => {
+    // const stats: any[] = [];
+    const employeeStats = new Map<string, any>();
+
+    requests.forEach(request => {
+      // Filter by period if needed
+      const requestDate = new Date(request.startDate);
+      const requestYear = requestDate.getFullYear();
+      const requestMonth = requestDate.getMonth() + 1;
+      
+      let shouldInclude = false;
+      if (period === 'month') {
+        shouldInclude = requestYear === year && requestMonth === month;
+      } else if (period === 'quarter') {
+        const quarterStart = Math.ceil(month / 3) * 3 - 2;
+        shouldInclude = requestYear === year && requestMonth >= quarterStart && requestMonth < quarterStart + 3;
+      } else if (period === 'year') {
+        shouldInclude = requestYear === year;
+      }
+
+      if (shouldInclude || period === 'all') {
+        const key = request.employeeId;
+        if (!employeeStats.has(key)) {
+          employeeStats.set(key, {
+            employeeId: request.employeeId,
+            employeeName: request.employeeName,
+            department: request.department,
+            totalDays: 0,
+            fullDays: 0,
+            halfDays: 0,
+            hourlyLeaves: 0,
+            status: request.status
+          });
+        }
+
+        const stat = employeeStats.get(key);
+        
+        // Calculate days based on leave type
+        if (request.leaveType === 'full_day') {
+          const days = calculateDaysBetween(request.startDate, request.endDate);
+          stat.fullDays += days;
+          stat.totalDays += days;
+        } else if (request.leaveType === 'half_day') {
+          stat.halfDays += 0.5;
+          stat.totalDays += 0.5;
+        } else if (request.leaveType === 'hourly') {
+          stat.hourlyLeaves += 1;
+          stat.totalDays += 0.125; // 1 hour = 0.125 days (1/8)
+        }
+      }
+    });
+
+    return Array.from(employeeStats.values());
+  };
+
+  const calculateDaysBetween = (startDate: string, endDate: string) => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays + 1; // Include both start and end dates
   };
 
   if (isLoading) {
@@ -1138,38 +1407,47 @@ const Statistics: React.FC = () => {
         </div>
         
         {/* Period Selection */}
-        <div className="flex flex-col sm:flex-row gap-3">
-        <div className="flex space-x-2">
-          <Button
-            variant={period === 'month' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setPeriod('month')}
-              className={period === 'month' ? 'bg-purple-600 hover:bg-purple-700' : ''}
-          >
-            Tháng
-          </Button>
-          <Button
-            variant={period === 'quarter' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setPeriod('quarter')}
-              className={period === 'quarter' ? 'bg-purple-600 hover:bg-purple-700' : ''}
-          >
-            Quý
-          </Button>
-          <Button
-            variant={period === 'year' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setPeriod('year')}
-              className={period === 'year' ? 'bg-purple-600 hover:bg-purple-700' : ''}
-          >
-            Năm
-          </Button>
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant={period === 'month' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setPeriod('month')}
+              className={`text-xs md:text-sm px-3 md:px-4 py-1 md:py-2 ${period === 'month' ? 'bg-purple-600 hover:bg-purple-700' : ''}`}
+            >
+              Tháng
+            </Button>
+            <Button
+              variant={period === 'quarter' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setPeriod('quarter')}
+              className={`text-xs md:text-sm px-3 md:px-4 py-1 md:py-2 ${period === 'quarter' ? 'bg-purple-600 hover:bg-purple-700' : ''}`}
+            >
+              Quý
+            </Button>
+            <Button
+              variant={period === 'year' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setPeriod('year')}
+              className={`text-xs md:text-sm px-3 md:px-4 py-1 md:py-2 ${period === 'year' ? 'bg-purple-600 hover:bg-purple-700' : ''}`}
+            >
+              Năm
+            </Button>
           </div>
           
           {/* Year and Month Selection */}
-          <div className="flex gap-2">
-            <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
-              <SelectTrigger className="w-24">
+          <div className="flex flex-wrap gap-2">
+            <Select 
+              value={selectedYear.toString()} 
+              onValueChange={(value) => {
+                setSelectedYear(parseInt(value));
+                // Reset month when year changes
+                if (period === 'month') {
+                  setSelectedMonth(1);
+                }
+              }}
+            >
+              <SelectTrigger className="w-20 md:w-24 text-xs md:text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -1180,8 +1458,11 @@ const Statistics: React.FC = () => {
             </Select>
             
             {period === 'month' && (
-              <Select value={selectedMonth.toString()} onValueChange={(value) => setSelectedMonth(parseInt(value))}>
-                <SelectTrigger className="w-32">
+              <Select 
+                value={selectedMonth.toString()} 
+                onValueChange={(value) => setSelectedMonth(parseInt(value))}
+              >
+                <SelectTrigger className="w-28 md:w-32 text-xs md:text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1197,176 +1478,606 @@ const Statistics: React.FC = () => {
         </div>
       </div>
 
-      {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Summary Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-          <CardContent className="p-4">
+          <CardContent className="p-3 md:p-4">
             <div className="flex items-center justify-between">
-                  <div>
-                <p className="text-sm font-medium text-blue-600">Tổng nhân viên</p>
-                <p className="text-2xl font-bold text-blue-800">
+              <div>
+                <p className="text-xs md:text-sm font-medium text-blue-600">Tổng nhân viên</p>
+                <p className="text-lg md:text-2xl font-bold text-blue-800">
                   {statistics.length}
                 </p>
-                  </div>
-              <Users className="h-8 w-8 text-blue-600" />
-                  </div>
+              </div>
+              <Users className="h-6 w-6 md:h-8 md:w-8 text-blue-600" />
+            </div>
           </CardContent>
         </Card>
         
         <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-          <CardContent className="p-4">
+          <CardContent className="p-3 md:p-4">
             <div className="flex items-center justify-between">
-                  <div>
-                <p className="text-sm font-medium text-green-600">Tổng ngày nghỉ</p>
-                <p className="text-2xl font-bold text-green-800">
+              <div>
+                <p className="text-xs md:text-sm font-medium text-green-600">Tổng ngày nghỉ</p>
+                <p className="text-lg md:text-2xl font-bold text-green-800">
                   {statistics.reduce((sum, stat) => sum + (stat.totalDays || 0), 0)}
                 </p>
-                  </div>
-              <Calendar className="h-8 w-8 text-green-600" />
+              </div>
+              <Calendar className="h-6 w-6 md:h-8 md:w-8 text-green-600" />
             </div>
           </CardContent>
         </Card>
         
         <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-          <CardContent className="p-4">
+          <CardContent className="p-3 md:p-4">
             <div className="flex items-center justify-between">
-                  <div>
-                <p className="text-sm font-medium text-orange-600">Nghỉ cả ngày</p>
-                <p className="text-2xl font-bold text-orange-800">
+              <div>
+                <p className="text-xs md:text-sm font-medium text-orange-600">Nghỉ cả ngày</p>
+                <p className="text-lg md:text-2xl font-bold text-orange-800">
                   {statistics.reduce((sum, stat) => sum + (stat.fullDays || 0), 0)}
                 </p>
-                  </div>
-              <Clock className="h-8 w-8 text-orange-600" />
+              </div>
+              <Clock className="h-6 w-6 md:h-8 md:w-8 text-orange-600" />
             </div>
           </CardContent>
         </Card>
         
         <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-          <CardContent className="p-4">
+          <CardContent className="p-3 md:p-4">
             <div className="flex items-center justify-between">
-                  <div>
-                <p className="text-sm font-medium text-purple-600">Nghỉ nửa ngày</p>
-                <p className="text-2xl font-bold text-purple-800">
+              <div>
+                <p className="text-xs md:text-sm font-medium text-purple-600">Nghỉ nửa ngày</p>
+                <p className="text-lg md:text-2xl font-bold text-purple-800">
                   {statistics.reduce((sum, stat) => sum + (stat.halfDays || 0), 0)}
                 </p>
-                  </div>
-              <Clock className="h-8 w-8 text-purple-600" />
-                </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Bar Chart - Leave Types Distribution */}
-        <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold text-blue-800">Phân bố loại nghỉ phép</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {statistics.length > 0 && (
-                <>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-600">Cả ngày</span>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-20 bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-blue-500 h-2 rounded-full" 
-                          style={{ 
-                            width: `${Math.max(1, (statistics.reduce((sum, stat) => sum + (stat.fullDays || 0), 0) / Math.max(1, statistics.reduce((sum, stat) => sum + (stat.totalDays || 0), 0))) * 100)}%` 
-                          }}
-                        ></div>
-                      </div>
-                      <span className="text-sm font-medium text-blue-600">
-                        {statistics.reduce((sum, stat) => sum + (stat.fullDays || 0), 0)}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-600">Nửa ngày</span>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-20 bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-green-500 h-2 rounded-full" 
-                          style={{ 
-                            width: `${Math.max(1, (statistics.reduce((sum, stat) => sum + (stat.halfDays || 0), 0) / Math.max(1, statistics.reduce((sum, stat) => sum + (stat.totalDays || 0), 0))) * 100)}%` 
-                          }}
-                        ></div>
-                      </div>
-                      <span className="text-sm font-medium text-green-600">
-                        {statistics.reduce((sum, stat) => sum + (stat.halfDays || 0), 0)}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-600">Theo giờ</span>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-20 bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-purple-500 h-2 rounded-full" 
-                          style={{ 
-                            width: `${Math.max(1, (statistics.reduce((sum, stat) => sum + (stat.hourlyLeaves || 0), 0) / Math.max(1, statistics.reduce((sum, stat) => sum + (stat.totalDays || 0), 0))) * 100)}%` 
-                          }}
-                        ></div>
-                      </div>
-                      <span className="text-sm font-medium text-purple-600">
-                        {statistics.reduce((sum, stat) => sum + (stat.hourlyLeaves || 0), 0)}
-                      </span>
-                    </div>
-                  </div>
-                </>
-              )}
               </div>
-            </CardContent>
-          </Card>
-
-        {/* Pie Chart - Department Distribution */}
-        <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold text-green-800">Phân bố theo phòng ban</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-                             {(() => {
-                 const deptStats = statistics.reduce((acc, stat) => {
-                   if (stat.department) {
-                     acc[stat.department] = (acc[stat.department] || 0) + (stat.totalDays || 0);
-                   }
-                   return acc;
-                 }, {} as Record<string, number>);
-                 
-                 const totalDeptDays = Object.values(deptStats).reduce((sum, days) => (sum as number) + (days as number), 0);
-                 
-                 return Object.entries(deptStats).map(([dept, days]) => (
-                   <div key={dept} className="flex items-center justify-between">
-                     <span className="text-sm font-medium text-gray-600">{dept}</span>
-                     <div className="flex items-center space-x-2">
-                       <div className="w-20 bg-gray-200 rounded-full h-2">
-                         <div 
-                           className="bg-green-500 h-2 rounded-full" 
-                           style={{ width: `${Math.max(1, ((days as number) / Math.max(1, totalDeptDays as number)) * 100)}%` }}
-                         ></div>
-                       </div>
-                       <span className="text-sm font-medium text-green-600">{days as number}</span>
-                     </div>
-                   </div>
-                 ));
-               })()}
+              <Clock className="h-6 w-6 md:h-8 md:w-8 text-purple-600" />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Detailed Statistics Table */}
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+        {/* Bar Chart - Leave Types Distribution */}
+        <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base md:text-lg font-semibold text-blue-800 flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 md:h-5 md:w-5" />
+              <span className="hidden sm:inline">Phân bố loại nghỉ phép</span>
+              <span className="sm:hidden">Loại nghỉ phép</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="space-y-3 md:space-y-4">
+              {statistics.length > 0 ? (
+                <>
+                  <div className="space-y-2 md:space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs md:text-sm font-medium text-gray-600">Cả ngày</span>
+                      <span className="text-xs md:text-sm font-medium text-blue-600">
+                        {statistics.reduce((sum, stat) => sum + (stat.fullDays || 0), 0)}
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2 md:h-3">
+                      <div 
+                        className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 md:h-3 rounded-full transition-all duration-500 ease-out" 
+                        style={{ 
+                          width: `${Math.max(1, (statistics.reduce((sum, stat) => sum + (stat.fullDays || 0), 0) / Math.max(1, statistics.reduce((sum, stat) => sum + (stat.totalDays || 0), 0))) * 100)}%` 
+                        }}
+                      ></div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2 md:space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs md:text-sm font-medium text-gray-600">Nửa ngày</span>
+                      <span className="text-xs md:text-sm font-medium text-green-600">
+                        {statistics.reduce((sum, stat) => sum + (stat.halfDays || 0), 0)}
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2 md:h-3">
+                      <div 
+                        className="bg-gradient-to-r from-green-500 to-green-600 h-2 md:h-3 rounded-full transition-all duration-500 ease-out" 
+                        style={{ 
+                          width: `${Math.max(1, (statistics.reduce((sum, stat) => sum + (stat.halfDays || 0), 0) / Math.max(1, statistics.reduce((sum, stat) => sum + (stat.totalDays || 0), 0))) * 100)}%` 
+                        }}
+                      ></div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2 md:space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs md:text-sm font-medium text-gray-600">Theo giờ</span>
+                      <span className="text-xs md:text-sm font-medium text-purple-600">
+                        {statistics.reduce((sum, stat) => sum + (stat.hourlyLeaves || 0), 0)}
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2 md:h-3">
+                      <div 
+                        className="bg-gradient-to-r from-purple-500 to-purple-600 h-2 md:h-3 rounded-full transition-all duration-500 ease-out" 
+                        style={{ 
+                          width: `${Math.max(1, (statistics.reduce((sum, stat) => sum + (stat.hourlyLeaves || 0), 0) / Math.max(1, statistics.reduce((sum, stat) => sum + (stat.totalDays || 0), 0))) * 100)}%` 
+                        }}
+                      ></div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-6 md:py-8 text-gray-500">
+                  <BarChart3 className="mx-auto h-8 w-8 md:h-12 md:w-12 mb-3 md:mb-4 opacity-50" />
+                  <p className="text-sm md:text-base">Không có dữ liệu để hiển thị</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Pie Chart - Department Distribution */}
+        <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base md:text-lg font-semibold text-green-800 flex items-center gap-2">
+              <Building2 className="h-4 w-4 md:h-5 md:w-5" />
+              <span className="hidden sm:inline">Phân bố theo phòng ban</span>
+              <span className="sm:hidden">Theo phòng ban</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="space-y-3 md:space-y-4">
+              {(() => {
+                const deptStats = statistics.reduce((acc, stat) => {
+                  if (stat.department) {
+                    acc[stat.department] = (acc[stat.department] || 0) + (stat.totalDays || 0);
+                  }
+                  return acc;
+                }, {} as Record<string, number>);
+                
+                const totalDeptDays = Object.values(deptStats).reduce((sum, days) => (sum as number) + (days as number), 0);
+                
+                if (Object.keys(deptStats).length === 0) {
+                  return (
+                    <div className="text-center py-6 md:py-8 text-gray-500">
+                      <Building2 className="mx-auto h-8 w-8 md:h-12 md:w-12 mb-3 md:mb-4 opacity-50" />
+                      <p className="text-sm md:text-base">Không có dữ liệu phòng ban</p>
+                    </div>
+                  );
+                }
+                
+                return Object.entries(deptStats).map(([dept, days]) => (
+                  <div key={dept} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs md:text-sm font-medium text-gray-600 truncate max-w-[100px] md:max-w-none">{dept}</span>
+                      <span className="text-xs md:text-sm font-medium text-green-600">{days as number}</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2 md:h-3">
+                      <div 
+                        className="bg-gradient-to-r from-green-500 to-emerald-600 h-2 md:h-3 rounded-full transition-all duration-500 ease-out" 
+                        style={{ width: `${Math.max(1, ((days as number) / Math.max(1, totalDeptDays as number)) * 100)}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                ));
+              })()}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Additional Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+        {/* Monthly Trend Chart */}
+        <Card className="bg-gradient-to-br from-orange-50 to-red-50 border-orange-200">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base md:text-lg font-semibold text-orange-800 flex items-center gap-2">
+              <Calendar className="h-4 w-4 md:h-5 md:w-5" />
+              <span className="hidden sm:inline">Xu hướng nghỉ phép theo thời gian</span>
+              <span className="sm:hidden">Xu hướng theo thời gian</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="space-y-3 md:space-y-4">
+              {statistics.length > 0 ? (
+                <div className="h-32 md:h-48 flex items-end justify-center space-x-1 md:space-x-2">
+                  {Array.from({ length: 12 }, (_, i) => {
+                    const month = i + 1;
+                    
+                    // Calculate total days for this month based on actual leave requests
+                    let monthTotalDays = 0;
+                    
+                    // Filter leave requests for this specific month
+                    const monthRequests = leaveRequests.filter(request => {
+                      const requestDate = new Date(request.startDate);
+                      return requestDate.getFullYear() === selectedYear && requestDate.getMonth() + 1 === month;
+                    });
+                    
+                    // Calculate total days for this month
+                    monthRequests.forEach(request => {
+                      if (request.leaveType === 'full_day') {
+                        const days = calculateDaysBetween(request.startDate, request.endDate);
+                        monthTotalDays += days;
+                      } else if (request.leaveType === 'half_day') {
+                        monthTotalDays += 0.5;
+                      } else if (request.leaveType === 'hourly') {
+                        monthTotalDays += 0.125; // 1 hour = 0.125 days
+                      }
+                    });
+                    
+                    // If no data for this month, show a small value for visual appeal
+                    if (monthTotalDays === 0) {
+                      monthTotalDays = 0.1;
+                    }
+                    
+                    const maxDays = Math.max(1, Math.max(...Array.from({ length: 12 }, (_, m) => {
+                      const monthRequests = leaveRequests.filter(request => {
+                        const requestDate = new Date(request.startDate);
+                        return requestDate.getFullYear() === selectedYear && requestDate.getMonth() + 1 === m + 1;
+                      });
+                      
+                      let totalDays = 0;
+                      monthRequests.forEach(request => {
+                        if (request.leaveType === 'full_day') {
+                          const days = calculateDaysBetween(request.startDate, request.endDate);
+                          totalDays += days;
+                        } else if (request.leaveType === 'half_day') {
+                          totalDays += 0.5;
+                        } else if (request.leaveType === 'hourly') {
+                          totalDays += 0.125;
+                        }
+                      });
+                      return totalDays;
+                    })));
+                    
+                    const height = Math.max((monthTotalDays / maxDays) * 100, 2);
+                    
+                    return (
+                      <div key={month} className="flex flex-col items-center space-y-1">
+                        <div 
+                          className="w-4 md:w-6 bg-gradient-to-t from-orange-500 to-red-500 rounded-t transition-all duration-500 ease-out"
+                          style={{ height: `${height}%` }}
+                        ></div>
+                        <span className="text-[10px] md:text-xs text-gray-600 font-medium">
+                          {format(new Date(2024, month - 1), 'MMM', { locale: vi })}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-6 md:py-8 text-gray-500">
+                  <Calendar className="mx-auto h-8 w-8 md:h-12 md:w-12 mb-3 md:mb-4 opacity-50" />
+                  <p className="text-sm md:text-base">Không có dữ liệu để hiển thị</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Employee Performance Chart */}
+        <Card className="bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-200">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base md:text-lg font-semibold text-indigo-800 flex items-center gap-2">
+              <Users className="h-4 w-4 md:h-5 md:w-5" />
+              <span className="hidden sm:inline">Top nhân viên nghỉ phép</span>
+              <span className="sm:hidden">Top nhân viên</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="space-y-2 md:space-y-3">
+              {statistics.length > 0 ? (
+                statistics
+                  .sort((a, b) => (b.totalDays || 0) - (a.totalDays || 0))
+                  .slice(0, 5)
+                  .map((stat, index) => (
+                    <div key={stat.employeeId} className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <div className={`w-5 h-5 md:w-6 md:h-6 rounded-full flex items-center justify-center text-white text-[10px] md:text-xs font-bold ${
+                          index === 0 ? 'bg-yellow-500' : 
+                          index === 1 ? 'bg-gray-400' : 
+                          index === 2 ? 'bg-orange-500' : 'bg-blue-500'
+                        }`}>
+                          {index + 1}
+                        </div>
+                        <span className="text-xs md:text-sm font-medium text-gray-700 truncate max-w-[80px] md:max-w-[120px]">
+                          {stat.employeeName}
+                        </span>
+                      </div>
+                      <span className="text-xs md:text-sm font-bold text-indigo-600">
+                        {stat.totalDays || 0} ngày
+                      </span>
+                    </div>
+                  ))
+              ) : (
+                <div className="text-center py-6 md:py-8 text-gray-500">
+                  <Users className="mx-auto h-8 w-8 md:h-12 md:w-12 mb-3 md:mb-4 opacity-50" />
+                  <p className="text-sm md:text-base">Không có dữ liệu để hiển thị</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* New Chart - Leave Summary by Department */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+        {/* Department Leave Summary */}
+        <Card className="bg-gradient-to-br from-teal-50 to-cyan-50 border-teal-200">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base md:text-lg font-semibold text-teal-800 flex items-center gap-2">
+              <Building2 className="h-4 w-4 md:h-5 md:w-5" />
+              <span className="hidden sm:inline">Tổng quan nghỉ phép theo phòng ban</span>
+              <span className="sm:hidden">Theo phòng ban</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="space-y-3 md:space-y-4">
+              {(() => {
+                const deptStats = leaveRequests.reduce((acc, request) => {
+                  if (request.department) {
+                    if (!acc[request.department]) {
+                      acc[request.department] = {
+                        totalDays: 0,
+                        fullDays: 0,
+                        halfDays: 0,
+                        hourlyLeaves: 0,
+                        employeeCount: new Set()
+                      };
+                    }
+                    
+                    // Add employee to set for unique count
+                    acc[request.department].employeeCount.add(request.employeeId);
+                    
+                    // Calculate days based on leave type
+                    if (request.leaveType === 'full_day') {
+                      const days = calculateDaysBetween(request.startDate, request.endDate);
+                      acc[request.department].fullDays += days;
+                      acc[request.department].totalDays += days;
+                    } else if (request.leaveType === 'half_day') {
+                      acc[request.department].halfDays += 0.5;
+                      acc[request.department].totalDays += 0.5;
+                    } else if (request.leaveType === 'hourly') {
+                      acc[request.department].hourlyLeaves += 1;
+                      acc[request.department].totalDays += 0.125;
+                    }
+                  }
+                  return acc;
+                }, {} as Record<string, any>);
+                
+                if (Object.keys(deptStats).length === 0) {
+                  return (
+                    <div className="text-center py-6 md:py-8 text-gray-500">
+                      <Building2 className="mx-auto h-8 w-8 md:h-12 md:w-12 mb-3 md:mb-4 opacity-50" />
+                      <p className="text-sm md:text-base">Không có dữ liệu phòng ban</p>
+                    </div>
+                  );
+                }
+                
+                return Object.entries(deptStats).map(([dept, data]) => {
+                  const deptData = data as {
+                    totalDays: number;
+                    fullDays: number;
+                    halfDays: number;
+                    hourlyLeaves: number;
+                    employeeCount: Set<string>;
+                  };
+                  
+                  return (
+                    <div key={dept} className="p-3 bg-white rounded-lg border border-teal-100">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-teal-800">{dept}</span>
+                        <span className="text-xs text-teal-600">{deptData.employeeCount.size} nhân viên</span>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-gray-600">Cả ngày:</span>
+                          <span className="font-medium text-blue-600">{deptData.fullDays.toFixed(1)}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-gray-600">Nửa ngày:</span>
+                          <span className="font-medium text-green-600">{deptData.halfDays.toFixed(1)}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-gray-600">Theo giờ:</span>
+                          <span className="font-medium text-purple-600">{deptData.hourlyLeaves}</span>
+                        </div>
+                        <div className="border-t border-teal-100 pt-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-gray-700">Tổng cộng:</span>
+                            <span className="text-lg font-bold text-teal-600">{deptData.totalDays.toFixed(1)} ngày</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+          </CardContent>
+        </Card>
+
+                {/* Leave Status Distribution */}
+        <Card className="bg-gradient-to-br from-pink-50 to-rose-50 border-pink-200">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base md:text-lg font-semibold text-pink-800 flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 md:h-5 md:w-5" />
+              <span className="hidden sm:inline">Phân bố trạng thái đơn xin nghỉ</span>
+              <span className="sm:hidden">Trạng thái đơn</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="space-y-3 md:space-y-4">
+              {leaveRequests.length > 0 ? (
+                <>
+                  <div className="space-y-2 md:space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs md:text-sm font-medium text-gray-600">Đã duyệt</span>
+                      <span className="text-xs md:text-sm font-medium text-green-600">
+                        {leaveRequests.filter(request => request.status === 'approved').length}
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2 md:h-3">
+                      <div 
+                        className="bg-gradient-to-r from-green-500 to-green-600 h-2 md:h-3 rounded-full transition-all duration-500 ease-out" 
+                        style={{ 
+                          width: `${Math.max(1, (leaveRequests.filter(request => request.status === 'approved').length / Math.max(1, leaveRequests.length)) * 100)}%` 
+                        }}
+                      ></div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2 md:space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs md:text-sm font-medium text-gray-600">Chờ duyệt</span>
+                      <span className="text-xs md:text-sm font-medium text-yellow-600">
+                        {leaveRequests.filter(request => request.status === 'pending').length}
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2 md:h-3">
+                      <div 
+                        className="bg-gradient-to-r from-yellow-500 to-yellow-600 h-2 md:h-3 rounded-full transition-all duration-500 ease-out" 
+                        style={{ 
+                          width: `${Math.max(1, (leaveRequests.filter(request => request.status === 'pending').length / Math.max(1, leaveRequests.length)) * 100)}%` 
+                        }}
+                      ></div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2 md:space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs md:text-sm font-medium text-gray-600">Từ chối</span>
+                      <span className="text-xs md:text-sm font-medium text-red-600">
+                        {leaveRequests.filter(request => request.status === 'rejected').length}
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2 md:h-3">
+                      <div 
+                        className="bg-gradient-to-r from-red-500 to-red-600 h-2 md:h-3 rounded-full transition-all duration-500 ease-out" 
+                        style={{ 
+                          width: `${Math.max(1, (leaveRequests.filter(request => request.status === 'rejected').length / Math.max(1, leaveRequests.length)) * 100)}%` 
+                        }}
+                      ></div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-6 md:py-8 text-gray-500">
+                  <BarChart3 className="mx-auto h-8 w-8 md:h-12 md:w-12 mb-3 md:mb-4 opacity-50" />
+                  <p className="text-sm md:text-base">Không có dữ liệu để hiển thị</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* New Chart - Real-time Leave Overview */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+        {/* Leave Requests by Month */}
+        <Card className="bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base md:text-lg font-semibold text-amber-800 flex items-center gap-2">
+              <Calendar className="h-4 w-4 md:h-5 md:w-5" />
+              <span className="hidden sm:inline">Đơn xin nghỉ theo tháng</span>
+              <span className="sm:hidden">Theo tháng</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="space-y-3 md:space-y-4">
+              {(() => {
+                const monthStats = Array.from({ length: 12 }, (_, i) => {
+                  const month = i + 1;
+                  const monthRequests = leaveRequests.filter(request => {
+                    const requestDate = new Date(request.startDate);
+                    return requestDate.getFullYear() === selectedYear && requestDate.getMonth() + 1 === month;
+                  });
+                  
+                  return {
+                    month,
+                    requests: monthRequests.length,
+                    totalDays: monthRequests.reduce((sum, request) => {
+                      if (request.leaveType === 'full_day') {
+                        return sum + calculateDaysBetween(request.startDate, request.endDate);
+                      } else if (request.leaveType === 'half_day') {
+                        return sum + 0.5;
+                      } else if (request.leaveType === 'hourly') {
+                        return sum + 0.125;
+                      }
+                      return sum;
+                    }, 0)
+                  };
+                });
+                
+                return monthStats.map(({ month, requests, totalDays }) => (
+                  <div key={month} className="flex items-center justify-between p-2 bg-white rounded border border-amber-100">
+                    <span className="text-sm font-medium text-amber-800">
+                      {format(new Date(2024, month - 1), 'MMMM', { locale: vi })}
+                    </span>
+                    <div className="flex items-center gap-4">
+                      <span className="text-xs text-amber-600">{requests} đơn</span>
+                      <span className="text-sm font-bold text-amber-700">{totalDays.toFixed(1)} ngày</span>
+                    </div>
+                  </div>
+                ));
+              })()}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Recent Leave Activity */}
+        <Card className="bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-200">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base md:text-lg font-semibold text-emerald-800 flex items-center gap-2">
+              <Clock className="h-4 w-4 md:h-5 md:w-5" />
+              <span className="hidden sm:inline">Hoạt động nghỉ phép gần đây</span>
+              <span className="sm:hidden">Hoạt động gần đây</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="space-y-3 md:space-y-4">
+              {(() => {
+                const recentRequests = leaveRequests
+                  .sort((a, b) => new Date(b.createdAt || b.startDate).getTime() - new Date(a.createdAt || a.startDate).getTime())
+                  .slice(0, 5);
+                
+                if (recentRequests.length === 0) {
+                  return (
+                    <div className="text-center py-6 text-gray-500">
+                      <Clock className="mx-auto h-8 w-8 mb-3 opacity-50" />
+                      <p className="text-sm">Không có hoạt động gần đây</p>
+                    </div>
+                  );
+                }
+                
+                return recentRequests.map((request) => (
+                  <div key={request._id} className="p-3 bg-white rounded-lg border border-emerald-100">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-emerald-800">{request.employeeName}</span>
+                      <span className={`text-xs px-2 py-1 rounded-full ${
+                        request.status === 'approved' ? 'bg-green-100 text-green-800' :
+                        request.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        {request.status === 'approved' ? 'Đã duyệt' :
+                         request.status === 'pending' ? 'Chờ duyệt' : 'Từ chối'}
+                      </span>
+                    </div>
+                    <div className="text-xs text-gray-600">
+                      {format(new Date(request.startDate), 'dd/MM/yyyy', { locale: vi })} - {request.leaveType === 'full_day' ? 'Cả ngày' : request.leaveType === 'half_day' ? 'Nửa ngày' : 'Theo giờ'}
+                    </div>
+                  </div>
+                ));
+              })()}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+            {/* Detailed Statistics Table */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg font-semibold text-gray-800">Chi tiết thống kê nhân viên</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          {statistics.length === 0 ? (
+          {leaveRequests.length === 0 ? (
             <div className="text-center py-12">
               <BarChart3 className="mx-auto h-12 w-12 text-gray-400 mb-4" />
               <p className="text-gray-500">Không có dữ liệu thống kê</p>
@@ -1381,49 +2092,90 @@ const Statistics: React.FC = () => {
                     <TableHead className="w-[100px] text-center">Cả ngày</TableHead>
                     <TableHead className="w-[100px] text-center">Nửa ngày</TableHead>
                     <TableHead className="w-[100px] text-center">Theo giờ</TableHead>
-                    <TableHead className="w-[100px] text-center">Tổng giờ</TableHead>
+                    <TableHead className="w-[100px] text-center">Trạng thái</TableHead>
                     <TableHead className="w-[120px] text-center">Tổng ngày</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {statistics.map((stat) => (
-                    <TableRow key={stat.employeeId} className="hover:bg-muted/50">
-                      <TableCell>
-                        <div className="flex items-center space-x-3">
-                          <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-xs">
-                            {stat.employeeName?.charAt(0) || 'N'}
+                  {(() => {
+                    const employeeStats = new Map<string, any>();
+                    
+                    leaveRequests.forEach(request => {
+                      const key = request.employeeId;
+                      if (!employeeStats.has(key)) {
+                        employeeStats.set(key, {
+                          employeeId: request.employeeId,
+                          employeeName: request.employeeName,
+                          department: request.department,
+                          fullDays: 0,
+                          halfDays: 0,
+                          hourlyLeaves: 0,
+                          totalDays: 0,
+                          status: request.status
+                        });
+                      }
+                      
+                      const stat = employeeStats.get(key);
+                      
+                      if (request.leaveType === 'full_day') {
+                        const days = calculateDaysBetween(request.startDate, request.endDate);
+                        stat.fullDays += days;
+                        stat.totalDays += days;
+                      } else if (request.leaveType === 'half_day') {
+                        stat.halfDays += 0.5;
+                        stat.totalDays += 0.5;
+                      } else if (request.leaveType === 'hourly') {
+                        stat.hourlyLeaves += 1;
+                        stat.totalDays += 0.125;
+                      }
+                    });
+                    
+                    return Array.from(employeeStats.values()).map((stat) => (
+                      <TableRow key={stat.employeeId} className="hover:bg-muted/50">
+                        <TableCell>
+                          <div className="flex items-center space-x-3">
+                            <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-xs">
+                              {stat.employeeName?.charAt(0) || 'N'}
+                            </div>
+                            <div>
+                              <div className="font-medium">{stat.employeeName}</div>
+                              <div className="text-xs text-muted-foreground">{stat.employeeId}</div>
+                            </div>
                           </div>
-                          <div>
-                            <div className="font-medium">{stat.employeeName}</div>
-                            <div className="text-xs text-muted-foreground">{stat.employeeId}</div>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
-                          {stat.department}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <span className="text-sm font-medium text-blue-600">{stat.fullDays || 0}</span>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <span className="text-sm font-medium text-green-600">{stat.halfDays || 0}</span>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <span className="text-sm font-medium text-purple-600">{stat.hourlyLeaves || 0}</span>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <span className="text-sm font-medium text-orange-600">{stat.totalHours || 0}</span>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <span className="text-lg font-bold text-purple-600">{stat.totalDays || 0}</span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        </TableCell>
+                        <TableCell>
+                          <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
+                            {stat.department}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <span className="text-sm font-medium text-blue-600">{stat.fullDays.toFixed(1)}</span>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <span className="text-sm font-medium text-green-600">{stat.halfDays.toFixed(1)}</span>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <span className="text-sm font-medium text-purple-600">{stat.hourlyLeaves}</span>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <span className={`text-xs px-2 py-1 rounded-full ${
+                            stat.status === 'approved' ? 'bg-green-100 text-green-800' :
+                            stat.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {stat.status === 'approved' ? 'Đã duyệt' :
+                             stat.status === 'pending' ? 'Chờ duyệt' : 'Từ chối'}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <span className="text-lg font-bold text-purple-600">{stat.totalDays.toFixed(1)}</span>
+                        </TableCell>
+                      </TableRow>
+                    ));
+                  })()}
                 </TableBody>
               </Table>
-      </div>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -1614,29 +2366,37 @@ const AdminDashboard: React.FC = () => {
       {/* Header */}
       <header className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
-                <Building2 className="h-8 w-8 text-white" />
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center h-auto sm:h-20 py-4 sm:py-0 gap-4 sm:gap-0">
+            {/* Logo and Title Section */}
+            <div className="flex items-center space-x-3 sm:space-x-4 w-full sm:w-auto">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm shrink-0">
+                <Building2 className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
               </div>
-              <div>
-                <h1 className="text-2xl font-bold text-white">Hệ thống Quản lý Nghỉ phép</h1>
-                <p className="text-blue-100">Quản trị viên</p>
+              <div className="min-w-0 flex-1 sm:flex-none">
+                <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-white leading-tight">
+                  Hệ thống Quản lý
+                  <br className="sm:hidden" />
+                  <span className="sm:ml-1">Nghỉ phép</span>
+                </h1>
+                <p className="text-xs sm:text-sm text-blue-100 mt-1">Quản trị viên</p>
               </div>
             </div>
-            <div className="flex items-center space-x-4">
-              <div className="text-right text-white">
-                <p className="text-sm font-medium">{admin?.name}</p>
-                <p className="text-xs text-blue-100">{admin?.email}</p>
+            
+            {/* User Info and Logout Section */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
+              <div className="text-left sm:text-right text-white w-full sm:w-auto">
+                <p className="text-sm font-medium truncate">{admin?.name}</p>
+                <p className="text-xs text-blue-100 truncate">{admin?.email}</p>
               </div>
               <Button 
                 variant="outline" 
                 size="sm" 
                 onClick={handleLogout}
-                className="border-white/30 bg-transparent text-white hover:bg-white/20 backdrop-blur-sm"
+                className="border-white/30 bg-transparent text-white hover:bg-white/20 backdrop-blur-sm w-full sm:w-auto"
               >
                 <LogOut className="h-4 w-4 mr-2" />
-                Đăng xuất
+                <span className="hidden xs:inline">Đăng xuất</span>
+                <span className="xs:hidden">Thoát</span>
               </Button>
             </div>
           </div>
@@ -1646,34 +2406,34 @@ const AdminDashboard: React.FC = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs defaultValue="employees" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-1 md:grid-cols-4 h-auto p-1 bg-gray-100 rounded-xl">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 h-auto p-1 bg-gray-100 rounded-xl gap-1">
             <TabsTrigger 
               value="employees" 
-              className="flex items-center space-x-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 rounded-lg transition-all duration-200"
+              className="flex items-center justify-center space-x-1 sm:space-x-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 rounded-lg transition-all duration-200 text-xs sm:text-sm"
             >
-              <Users className="h-4 w-4" />
-              <span className="hidden sm:inline">Nhân viên</span>
+              <Users className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden xs:inline">Nhân viên</span>
             </TabsTrigger>
             <TabsTrigger 
               value="leaves" 
-              className="flex items-center space-x-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-green-600 rounded-lg transition-all duration-200"
+              className="flex items-center justify-center space-x-1 sm:space-x-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-green-600 rounded-lg transition-all duration-200 text-xs sm:text-sm"
             >
-              <Calendar className="h-4 w-4" />
-              <span className="hidden sm:inline">Đơn xin nghỉ</span>
+              <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden xs:inline">Đơn xin nghỉ</span>
             </TabsTrigger>
             <TabsTrigger 
               value="statistics" 
-              className="flex items-center space-x-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-purple-600 rounded-lg transition-all duration-200"
+              className="flex items-center justify-center space-x-1 sm:space-x-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-purple-600 rounded-lg transition-all duration-200 text-xs sm:text-sm"
             >
-              <BarChart3 className="h-4 w-4" />
-              <span className="hidden sm:inline">Thống kê</span>
+              <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden xs:inline">Thống kê</span>
             </TabsTrigger>
             <TabsTrigger 
               value="settings" 
-              className="flex items-center space-x-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-indigo-600 rounded-lg transition-all duration-200"
+              className="flex items-center justify-center space-x-1 sm:space-x-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-indigo-600 rounded-lg transition-all duration-200 text-xs sm:text-sm"
             >
-               <SettingsIcon className="h-4 w-4" />
-              <span className="hidden sm:inline">Cài đặt</span>
+               <SettingsIcon className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden xs:inline">Cài đặt</span>
              </TabsTrigger>
           </TabsList>
 

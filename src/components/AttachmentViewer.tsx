@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 interface AttachmentViewerProps {
   attachments: Attachment[];
   canDelete?: boolean;
-  onDelete?: (publicId: string) => void;
+  onDelete?: (publicId: string, fileName: string) => void;
 }
 
 const AttachmentViewer: React.FC<AttachmentViewerProps> = ({ 
@@ -130,7 +130,7 @@ const AttachmentViewer: React.FC<AttachmentViewerProps> = ({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => onDelete(attachment.publicId)}
+                    onClick={() => onDelete(attachment.publicId, attachment.originalName)}
                     className="h-8 w-8 p-0 hover:bg-red-50 hover:border-red-200"
                     title="Xóa"
                   >

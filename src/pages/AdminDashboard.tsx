@@ -38,6 +38,8 @@ import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import EmployeeForm from '@/components/EmployeeForm';
 import AdminLeaveForm, { AdminLeaveFormRef } from '@/components/AdminLeaveForm';
+import ConfirmDialog from '@/components/ConfirmDialog';
+import PromptDialog from '@/components/PromptDialog';
 
 // Employee Management Component
 const EmployeeManagement: React.FC = () => {
@@ -45,6 +47,10 @@ const EmployeeManagement: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+
+  // Dialog states
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDepartment, setFilterDepartment] = useState('all');
 
@@ -86,15 +92,22 @@ const EmployeeManagement: React.FC = () => {
     setShowForm(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Bạn có chắc muốn xóa nhân viên này?')) {
-      try {
-        await employeeAPI.delete(id);
-        toast.success('Xóa nhân viên thành công');
-        loadEmployees();
-      } catch (error) {
-        toast.error('Không thể xóa nhân viên');
-      }
+  const handleDelete = (employee: Employee) => {
+    setEmployeeToDelete(employee);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDeleteEmployee = async () => {
+    if (!employeeToDelete) return;
+    
+    try {
+      await employeeAPI.delete(employeeToDelete._id);
+      toast.success('Xóa nhân viên thành công');
+      loadEmployees();
+    } catch (error) {
+      toast.error('Không thể xóa nhân viên');
+    } finally {
+      setEmployeeToDelete(null);
     }
   };
 
@@ -320,7 +333,7 @@ const EmployeeManagement: React.FC = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleDelete(employee._id)}
+                    onClick={() => handleDelete(employee)}
                             className="h-8 w-8 p-0 border-red-300 text-red-600 hover:bg-red-50"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -335,6 +348,18 @@ const EmployeeManagement: React.FC = () => {
           )}
             </CardContent>
           </Card>
+
+          {/* Confirm Delete Dialog */}
+          <ConfirmDialog
+            open={deleteConfirmOpen}
+            onOpenChange={setDeleteConfirmOpen}
+            title="Xác nhận xóa nhân viên"
+            description={`Bạn có chắc muốn xóa nhân viên "${employeeToDelete?.name}" không? Hành động này không thể hoàn tác.`}
+            onConfirm={confirmDeleteEmployee}
+            variant="destructive"
+            confirmText="Xóa"
+            cancelText="Hủy"
+          />
     </div>
   );
 };
@@ -351,6 +376,14 @@ const LeaveManagement: React.FC = () => {
   const [selectedRequest, setSelectedRequest] = useState<LeaveRequest | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const leaveFormRef = useRef<AdminLeaveFormRef>(null);
+  
+  // Dialog states
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteAttachmentConfirmOpen, setDeleteAttachmentConfirmOpen] = useState(false);
+  const [requestToReject, setRequestToReject] = useState<string | null>(null);
+  const [requestToDelete, setRequestToDelete] = useState<LeaveRequest | null>(null);
+  const [attachmentToDelete, setAttachmentToDelete] = useState<{leaveRequestId: string, publicId: string, name: string} | null>(null);
 
   useEffect(() => {
     loadLeaveRequests();
@@ -380,8 +413,26 @@ const LeaveManagement: React.FC = () => {
 
   const handleSave = async (data: any) => {
     try {
+      // Convert MongoDB ObjectId to employeeId (employee code)
+      let processedData = { ...data };
+      if (data.employeeId) {
+        const selectedEmployee = employees.find(emp => emp._id === data.employeeId);
+        if (selectedEmployee) {
+          processedData.employeeId = selectedEmployee.employeeId; // Convert to employee code (e.g., "EMP001")
+          console.log('Converting employeeId from MongoDB ObjectId to employee code:', {
+            originalId: data.employeeId,
+            employeeCode: selectedEmployee.employeeId,
+            employeeName: selectedEmployee.name
+          });
+        } else {
+          console.error('Employee not found with ID:', data.employeeId);
+          toast.error('Không tìm thấy nhân viên');
+          return;
+        }
+      }
+      
       if (editingLeave) {
-        await leaveRequestAPI.update(editingLeave._id, data);
+        await leaveRequestAPI.update(editingLeave._id, processedData);
         toast.success('Cập nhật lịch nghỉ thành công!');
         
         // Force refresh form with latest data after successful update
@@ -390,13 +441,15 @@ const LeaveManagement: React.FC = () => {
           leaveFormRef.current.forceRefresh();
         }
       } else {
-        await leaveRequestAPI.createByAdmin(data);
+        console.log('Creating new leave request with data:', processedData);
+        await leaveRequestAPI.createByAdmin(processedData);
         toast.success('Thêm lịch nghỉ thành công!');
       }
       setShowForm(false);
       setEditingLeave(null);
       loadLeaveRequests();
     } catch (error) {
+      console.error('Error saving leave request:', error);
       toast.error('Có lỗi xảy ra!');
       throw error;
     }
@@ -427,43 +480,63 @@ const LeaveManagement: React.FC = () => {
     }
   };
 
-  const handleReject = async (id: string) => {
-    const reason = prompt('Lý do từ chối:');
-    if (reason) {
-      try {
-        await leaveRequestAPI.update(id, { 
-          status: 'rejected', 
-          rejectionReason: reason 
-        });
-        toast.success('Đã từ chối đơn xin nghỉ');
-        loadLeaveRequests();
-      } catch (error) {
-        toast.error('Không thể từ chối đơn');
-      }
+  const handleReject = (id: string) => {
+    setRequestToReject(id);
+    setRejectDialogOpen(true);
+  };
+
+  const confirmReject = async (reason: string) => {
+    if (!requestToReject) return;
+    
+    try {
+      await leaveRequestAPI.update(requestToReject, { 
+        status: 'rejected', 
+        rejectionReason: reason 
+      });
+      toast.success('Đã từ chối đơn xin nghỉ');
+      loadLeaveRequests();
+    } catch (error) {
+      toast.error('Không thể từ chối đơn');
+    } finally {
+      setRequestToReject(null);
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Bạn có chắc muốn xóa lịch nghỉ này?')) {
-      try {
-        await leaveRequestAPI.delete(id);
-        toast.success('Xóa lịch nghỉ thành công');
-        loadLeaveRequests();
-      } catch (error) {
-        toast.error('Không thể xóa lịch nghỉ');
-      }
+  const handleDeleteRequest = (request: LeaveRequest) => {
+    setRequestToDelete(request);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDeleteRequest = async () => {
+    if (!requestToDelete) return;
+    
+    try {
+      await leaveRequestAPI.delete(requestToDelete._id);
+      toast.success('Xóa lịch nghỉ thành công');
+      loadLeaveRequests();
+    } catch (error) {
+      toast.error('Không thể xóa lịch nghỉ');
+    } finally {
+      setRequestToDelete(null);
     }
   };
 
-  const handleDeleteAttachment = async (leaveRequestId: string, publicId: string) => {
-    if (window.confirm('Bạn có chắc muốn xóa tài liệu này?')) {
-      try {
-        await leaveRequestAPI.deleteAttachment(leaveRequestId, publicId);
-        toast.success('Đã xóa tài liệu');
-        loadLeaveRequests();
-      } catch (error) {
-        toast.error('Lỗi khi xóa tài liệu');
-      }
+  const handleDeleteAttachment = (leaveRequestId: string, publicId: string, fileName: string) => {
+    setAttachmentToDelete({ leaveRequestId, publicId, name: fileName });
+    setDeleteAttachmentConfirmOpen(true);
+  };
+
+  const confirmDeleteAttachment = async () => {
+    if (!attachmentToDelete) return;
+    
+    try {
+      await leaveRequestAPI.deleteAttachment(attachmentToDelete.leaveRequestId, attachmentToDelete.publicId);
+      toast.success('Đã xóa tài liệu');
+      loadLeaveRequests();
+    } catch (error) {
+      toast.error('Lỗi khi xóa tài liệu');
+    } finally {
+      setAttachmentToDelete(null);
     }
   };
 
@@ -789,7 +862,7 @@ const LeaveManagement: React.FC = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleDelete(request._id)}
+                            onClick={() => handleDeleteRequest(request)}
                             className="h-8 w-8 p-0 border-red-300 text-red-600 hover:bg-red-50"
                             title="Xóa"
                           >
@@ -908,7 +981,7 @@ const LeaveManagement: React.FC = () => {
                     <AttachmentViewer 
                       attachments={selectedRequest.attachments} 
                       canDelete={true}
-                      onDelete={(publicId) => handleDeleteAttachment(selectedRequest._id, publicId)}
+                      onDelete={(publicId, fileName) => handleDeleteAttachment(selectedRequest._id, publicId, fileName)}
                     />
                   </div>
                 </div>
@@ -961,7 +1034,7 @@ const LeaveManagement: React.FC = () => {
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    handleDelete(selectedRequest._id);
+                    handleDeleteRequest(selectedRequest);
                     handleCloseDetailModal();
                   }}
                   className="border-red-300 text-red-600 hover:bg-red-50"
@@ -974,6 +1047,42 @@ const LeaveManagement: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Dialogs */}
+      <PromptDialog
+        open={rejectDialogOpen}
+        onOpenChange={setRejectDialogOpen}
+        title="Từ chối đơn xin nghỉ"
+        description="Vui lòng nhập lý do từ chối đơn xin nghỉ này:"
+        placeholder="Nhập lý do từ chối..."
+        onConfirm={confirmReject}
+        confirmText="Từ chối"
+        cancelText="Hủy"
+        multiline={true}
+        required={true}
+      />
+
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+        title="Xác nhận xóa đơn xin nghỉ"
+        description={`Bạn có chắc muốn xóa đơn xin nghỉ của "${requestToDelete?.employeeName}" không? Hành động này không thể hoàn tác.`}
+        onConfirm={confirmDeleteRequest}
+        variant="destructive"
+        confirmText="Xóa"
+        cancelText="Hủy"
+      />
+
+      <ConfirmDialog
+        open={deleteAttachmentConfirmOpen}
+        onOpenChange={setDeleteAttachmentConfirmOpen}
+        title="Xác nhận xóa tài liệu"
+        description={`Bạn có chắc muốn xóa tài liệu "${attachmentToDelete?.name}" không? Hành động này không thể hoàn tác.`}
+        onConfirm={confirmDeleteAttachment}
+        variant="destructive"
+        confirmText="Xóa"
+        cancelText="Hủy"
+      />
     </div>
   );
 };

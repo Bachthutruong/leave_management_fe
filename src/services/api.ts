@@ -4,7 +4,8 @@ import { Employee, LeaveRequest, AuthResponse, LoginCredentials, LeaveStatistics
 
 // Create axios instance
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api',
+  // baseURL: 'http://localhost:5002/api',
+  baseURL: 'https://leave-management-be-8rhi.onrender.com/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -122,11 +123,27 @@ export const leaveRequestAPI = {
     await api.delete(`/leave-requests/${id}`);
   },
   
-  getCompanyCalendar: async (month?: number, year?: number): Promise<CalendarEvent[]> => {
-    const response = await api.get('/leave-requests/calendar/company', {
-      params: { month, year }
-    });
-    return response.data;
+  deleteAttachment: async (leaveRequestId: string, publicId: string): Promise<void> => {
+    await api.delete(`/leave-requests/${leaveRequestId}/attachments/${publicId}`);
+  },
+  
+  getCompanyCalendar: async (year?: number, month?: number): Promise<CalendarEvent[]> => {
+    // Ensure year and month are valid numbers
+    if (year && month) {
+      console.log('API call params:', { year, month });
+    }
+    
+    try {
+      const response = await api.get('/leave-requests/calendar/company', {
+        params: { year, month }
+      });
+      
+      console.log('Calendar API response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Calendar API error:', error);
+      throw error;
+    }
   },
   
   getStatistics: async (period: 'month' | 'quarter' | 'year', value?: number): Promise<LeaveStatistics[]> => {

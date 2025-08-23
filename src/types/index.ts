@@ -12,6 +12,14 @@ export interface Employee {
   updatedAt: string;
 }
 
+export interface Attachment {
+  url: string;
+  publicId: string;
+  originalName: string;
+  size: number;
+  mimetype: string;
+}
+
 export interface LeaveRequest {
   _id: string;
   employeeId: string;
@@ -24,7 +32,7 @@ export interface LeaveRequest {
   startDate: string;
   endDate: string;
   reason?: string;
-  attachments?: string[];
+  attachments?: Attachment[];
   status: 'pending' | 'approved' | 'rejected';
   approvedBy?: string;
   approvedAt?: string;

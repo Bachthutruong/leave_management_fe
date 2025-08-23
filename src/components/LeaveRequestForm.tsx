@@ -89,6 +89,9 @@ const LeaveRequestForm: React.FC = () => {
       toast.success('Đơn xin nghỉ đã được gửi thành công!');
       reset();
       setAttachments([]);
+      
+      // Trigger refresh of parent components
+      window.dispatchEvent(new CustomEvent('leaveRequestSubmitted'));
     } catch (error: any) {
       const message = error.response?.data?.message || 'Gửi đơn thất bại!';
       toast.error(message);
@@ -103,25 +106,27 @@ const LeaveRequestForm: React.FC = () => {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center space-x-2">
-          <FileText className="h-5 w-5" />
+    <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200">
+      <CardHeader className="bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-t-lg">
+        <CardTitle className="flex items-center space-x-2 text-xl">
+          <FileText className="h-6 w-6" />
           <span>Đăng ký Nghỉ phép</span>
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="text-green-100">
           Vui lòng điền đầy đủ thông tin để đăng ký nghỉ phép
         </CardDescription>
       </CardHeader>
       <CardContent>
         {/* Employee Info */}
-        <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+        <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
           <div className="flex items-center space-x-4">
-            <User className="h-5 w-5 text-muted-foreground" />
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
+              <User className="h-6 w-6 text-white" />
+            </div>
             <div>
-              <p className="font-medium">{employee?.name}</p>
-              <p className="text-sm text-muted-foreground flex items-center space-x-1">
-                <Building2 className="h-3 w-3" />
+              <p className="font-semibold text-lg text-gray-800">{employee?.name}</p>
+              <p className="text-sm text-gray-600 flex items-center space-x-1">
+                <Building2 className="h-4 w-4 text-blue-600" />
                 <span>{employee?.department}</span>
               </p>
             </div>
@@ -265,7 +270,7 @@ const LeaveRequestForm: React.FC = () => {
           {/* Submit Button */}
           <Button
             type="submit"
-            className="w-full"
+            className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-3 text-lg font-semibold shadow-lg"
             disabled={isLoading}
           >
             {isLoading ? (

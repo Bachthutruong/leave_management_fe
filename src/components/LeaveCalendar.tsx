@@ -6,14 +6,26 @@ import { Button } from '@/components/ui/button';
 
 import { leaveRequestAPI } from '@/services/api';
 import { CalendarEvent } from '@/types';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, RefreshCw, Smartphone } from 'lucide-react';
 
 const LeaveCalendar: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [isMobileView, setIsMobileView] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Detect mobile view
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobileView(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const fetchEvents = async () => {
     setIsLoading(true);
@@ -146,11 +158,13 @@ const LeaveCalendar: React.FC = () => {
     <Card className="w-full bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200">
       <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-lg">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-          <CardTitle className="flex items-center gap-2 text-xl">
-            <CalendarIcon className="h-6 w-6" />
-            Lịch nghỉ phép công ty
+          <CardTitle className="flex items-center gap-2 text-lg lg:text-xl">
+            <CalendarIcon className="h-5 w-5 lg:h-6 lg:w-6" />
+            <span className="hidden sm:inline">Lịch nghỉ phép công ty</span>
+            <span className="sm:hidden">Lịch nghỉ phép</span>
+            {isMobileView && <Smartphone className="h-4 w-4 ml-2 opacity-75" />}
           </CardTitle>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-center">
             <Button
               variant="outline"
               size="sm"
@@ -159,7 +173,7 @@ const LeaveCalendar: React.FC = () => {
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className="text-lg font-medium min-w-[120px] text-center">
+            <span className="text-base lg:text-lg font-medium min-w-[100px] lg:min-w-[120px] text-center">
               {format(currentDate, 'MMMM yyyy', { locale: vi })}
             </span>
             <Button
@@ -179,45 +193,27 @@ const LeaveCalendar: React.FC = () => {
             >
               <RefreshCw className="h-4 w-4" />
             </Button>
-            {/* <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                console.log('Current events state:', events);
-                console.log('Current date:', currentDate);
-              }}
-              className="border-white/30 text-white hover:bg-white/20 backdrop-blur-sm ml-2"
-              title="Debug info"
-            >
-              🐛
-            </Button> */}
           </div>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-2 sm:p-6">
         {isLoading ? (
-          <div className="flex items-center justify-center h-64">
+          <div className="flex items-center justify-center h-48 sm:h-64">
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
           </div>
         ) : events.length === 0 ? (
-          <div className="flex items-center justify-center h-64">
+          <div className="flex items-center justify-center h-48 sm:h-64">
             <div className="text-center">
-              <CalendarIcon className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-              <p className="text-gray-500">Không có dữ liệu lịch nghỉ phép</p>
-              <p className="text-sm text-gray-400 mt-2">Vui lòng thử lại sau</p>
-              {/* <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                <p className="text-xs text-blue-600">
-                  Debug: Events count: {events.length} | 
-                  Current date: {format(currentDate, 'yyyy-MM')}
-                </p>
-              </div> */}
+              <CalendarIcon className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-gray-400 mb-4" />
+              <p className="text-gray-500 text-sm sm:text-base">Không có dữ liệu lịch nghỉ phép</p>
+              <p className="text-xs sm:text-sm text-gray-400 mt-2">Vui lòng thử lại sau</p>
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-7 gap-1">
+          <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
             {/* Weekday headers */}
             {weekdays.map(day => (
-              <div key={day} className="p-3 text-center text-sm font-medium text-blue-600 bg-blue-50 rounded-lg">
+              <div key={day} className="p-2 sm:p-3 text-center text-xs sm:text-sm font-medium text-blue-600 bg-blue-50 rounded-lg">
                 {day}
               </div>
             ))}
@@ -227,7 +223,7 @@ const LeaveCalendar: React.FC = () => {
               const dayEvents = getEventsForDay(day);
               const isCurrentMonth = isSameMonth(day, currentDate);
               const isToday = isSameDay(day, new Date());
-              const maxDisplayEvents = 2;
+              const maxDisplayEvents = isMobileView ? 1 : 2;
               const visibleEvents = dayEvents.slice(0, maxDisplayEvents);
               const remainingEvents = dayEvents.slice(maxDisplayEvents);
               const hasMoreEvents = remainingEvents.length > 0;
@@ -235,26 +231,30 @@ const LeaveCalendar: React.FC = () => {
               return (
                 <div
                   key={day.toISOString()}
-                  className={`min-h-[100px] p-2 border border-gray-200 rounded-lg transition-all duration-200 hover:shadow-md ${
+                  className={`min-h-[80px] sm:min-h-[100px] p-1 sm:p-2 border border-gray-200 rounded-lg transition-all duration-200 hover:shadow-md ${
                     isCurrentMonth ? 'bg-white' : 'bg-gray-50/50'
                   } ${isToday ? 'ring-2 ring-blue-500 bg-blue-50' : ''}`}
                 >
-                  <div className={`text-sm font-medium mb-2 ${
+                  <div className={`text-xs sm:text-sm font-medium mb-1 sm:mb-2 text-center ${
                     isToday ? 'text-blue-600' : 'text-gray-700'
                   }`}>
                     {format(day, 'd')}
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-0.5 sm:space-y-1">
                     {/* Visible events */}
                     {visibleEvents.map((event, index) => (
                       <div
                         key={index}
-                        className={`text-xs p-1.5 rounded-md truncate shadow-sm ${getLeaveTypeColor(event.leaveType, event.halfDayType)}`}
+                        className={`text-xs p-1 sm:p-1.5 rounded-md truncate shadow-sm ${getLeaveTypeColor(event.leaveType, event.halfDayType)}`}
                         title={`${event.employeeName} - ${event.department} - ${getLeaveTypeText(event.leaveType, event.halfDayType)}`}
                       >
-                        <div className="font-medium truncate">{event.employeeName}</div>
-                        <div className="text-xs opacity-90 truncate">{event.department}</div>
-                        <div className="text-xs opacity-75 truncate">
+                        <div className="font-medium truncate text-[10px] sm:text-xs">
+                          {isMobileView ? event.employeeName.split(' ').slice(-1)[0] : event.employeeName}
+                        </div>
+                        <div className="text-[10px] sm:text-xs opacity-90 truncate">
+                          {isMobileView ? event.department.substring(0, 2) : event.department}
+                        </div>
+                        <div className="text-[10px] sm:text-xs opacity-75 truncate">
                           {getLeaveTypeText(event.leaveType, event.halfDayType)}
                         </div>
                       </div>
@@ -264,7 +264,7 @@ const LeaveCalendar: React.FC = () => {
                     {hasMoreEvents && (
                       <div className="relative" ref={dropdownRef}>
                         <button 
-                          className={`w-full text-xs p-1.5 rounded-md transition-colors ${
+                          className={`w-full text-[10px] sm:text-xs p-1 sm:p-1.5 rounded-md transition-colors ${
                             openDropdown === format(day, 'yyyy-MM-dd')
                               ? 'bg-blue-100 text-blue-700 border border-blue-200' 
                               : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
@@ -279,7 +279,9 @@ const LeaveCalendar: React.FC = () => {
                         </button>
                         
                         {openDropdown === format(day, 'yyyy-MM-dd') && (
-                          <div className="absolute top-full left-0 w-80 mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-xl max-h-64 overflow-y-auto">
+                          <div className={`absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-xl max-h-64 overflow-y-auto ${
+                            isMobileView ? 'w-72' : 'w-80'
+                          }`}>
                             <div className="p-3 border-b bg-gray-50 sticky top-0">
                               <h4 className="font-medium text-sm text-gray-900">
                                 Nghỉ phép ngày {format(day, 'dd/MM/yyyy', { locale: vi })}
@@ -327,27 +329,27 @@ const LeaveCalendar: React.FC = () => {
         )}
 
         {/* Legend */}
-        <div className="mt-6 p-6 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl border border-gray-200">
-          <h4 className="text-lg font-semibold mb-4 text-gray-800 flex items-center gap-2">
-            <CalendarIcon className="h-5 w-5 text-blue-600" />
+        <div className="mt-4 sm:mt-6 p-4 sm:p-6 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl border border-gray-200">
+          <h4 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-gray-800 flex items-center gap-2">
+            <CalendarIcon className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
             Chú thích
           </h4>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
-              <div className="w-4 h-4 bg-red-500 rounded-full shadow-md"></div>
-              <span className="text-sm font-medium text-gray-700">Nghỉ cả ngày</span>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
+            <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
+              <div className="w-3 h-3 sm:w-4 sm:h-4 bg-red-500 rounded-full shadow-md"></div>
+              <span className="text-xs sm:text-sm font-medium text-gray-700">Nghỉ cả ngày</span>
             </div>
-            <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
-              <div className="w-4 h-4 bg-orange-500 rounded-full shadow-md"></div>
-              <span className="text-sm font-medium text-gray-700">Nghỉ sáng</span>
+            <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
+              <div className="w-3 h-3 sm:w-4 sm:h-4 bg-orange-500 rounded-full shadow-md"></div>
+              <span className="text-xs sm:text-sm font-medium text-gray-700">Nghỉ sáng</span>
             </div>
-            <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
-              <div className="w-4 h-4 bg-yellow-500 rounded-full shadow-md"></div>
-              <span className="text-sm font-medium text-gray-700">Nghỉ chiều</span>
+            <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
+              <div className="w-3 h-3 sm:w-4 sm:h-4 bg-yellow-500 rounded-full shadow-md"></div>
+              <span className="text-xs sm:text-sm font-medium text-gray-700">Nghỉ chiều</span>
             </div>
-            <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
-              <div className="w-4 h-4 bg-blue-500 rounded-full shadow-md"></div>
-              <span className="text-sm font-medium text-gray-700">Nghỉ theo giờ</span>
+            <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
+              <div className="w-3 h-3 sm:w-4 sm:h-4 bg-blue-500 rounded-full shadow-md"></div>
+              <span className="text-xs sm:text-sm font-medium text-gray-700">Nghỉ theo giờ</span>
             </div>
           </div>
         </div>

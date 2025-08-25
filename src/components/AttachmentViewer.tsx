@@ -63,7 +63,7 @@ const AttachmentViewer: React.FC<AttachmentViewerProps> = ({
     return (
       <div className="text-center py-4 text-gray-500">
         <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
-        <p className="text-sm">Không có tài liệu đính kèm</p>
+        <p className="text-sm">沒有附件文件</p>
       </div>
     );
   }
@@ -72,7 +72,7 @@ const AttachmentViewer: React.FC<AttachmentViewerProps> = ({
     <div className="space-y-3">
       <h4 className="font-medium text-gray-700 flex items-center gap-2">
         <FileText className="h-4 w-4" />
-        Tài liệu đính kèm ({attachments.length})
+        附件文件 ({attachments.length})
       </h4>
       
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -111,7 +111,7 @@ const AttachmentViewer: React.FC<AttachmentViewerProps> = ({
                   size="sm"
                   onClick={() => handlePreview(attachment)}
                   className="h-8 w-8 p-0"
-                  title="Xem trước"
+                  title="預覽"
                 >
                   <Eye className="h-3 w-3" />
                 </Button>
@@ -121,7 +121,7 @@ const AttachmentViewer: React.FC<AttachmentViewerProps> = ({
                   size="sm"
                   onClick={() => handleDownload(attachment)}
                   className="h-8 w-8 p-0"
-                  title="Tải xuống"
+                  title="下載"
                 >
                   <Download className="h-3 w-3" />
                 </Button>
@@ -132,7 +132,7 @@ const AttachmentViewer: React.FC<AttachmentViewerProps> = ({
                     size="sm"
                     onClick={() => onDelete(attachment.publicId, attachment.originalName)}
                     className="h-8 w-8 p-0 hover:bg-red-50 hover:border-red-200"
-                    title="Xóa"
+                    title="刪除"
                   >
                     <Trash2 className="h-3 w-3 text-red-500" />
                   </Button>
@@ -148,7 +148,7 @@ const AttachmentViewer: React.FC<AttachmentViewerProps> = ({
         <DialogContent className="max-w-4xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between">
-              <span>Xem trước ảnh</span>
+              <span>圖片預覽</span>
               <Button
                 variant="ghost"
                 size="sm"

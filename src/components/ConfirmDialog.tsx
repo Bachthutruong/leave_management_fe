@@ -23,8 +23,8 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   onConfirm,
   onCancel,
   variant = 'default',
-  confirmText = 'Xác nhận',
-  cancelText = 'Hủy'
+  confirmText = '確認',
+  cancelText = '取消'
 }) => {
   const handleConfirm = () => {
     onConfirm();

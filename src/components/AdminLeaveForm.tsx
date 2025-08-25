@@ -16,8 +16,7 @@ interface AdminLeaveFormData {
   halfDayType?: 'morning' | 'afternoon' | 'evening';
   startTime?: string;
   endTime?: string;
-  startDate: string;
-  endDate: string;
+  leaveDate: string; // Changed from startDate/endDate to single leaveDate
   reason?: string;
   status: 'pending' | 'approved' | 'rejected';
 }
@@ -53,8 +52,7 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
     halfDayType: undefined,
     startTime: '',
     endTime: '',
-    startDate: new Date().toISOString().split('T')[0],
-    endDate: new Date().toISOString().split('T')[0],
+    leaveDate: new Date().toISOString().split('T')[0],
     reason: '',
     status: 'pending',
   });
@@ -114,8 +112,7 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
         halfDayType: leaveRequest.halfDayType,
         startTime: leaveRequest.startTime || '',
         endTime: leaveRequest.endTime || '',
-        startDate: leaveRequest.startDate ? new Date(leaveRequest.startDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        endDate: leaveRequest.endDate ? new Date(leaveRequest.endDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        leaveDate: leaveRequest.startDate ? new Date(leaveRequest.startDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         reason: leaveRequest.reason || '',
         status: leaveRequest.status || 'pending',
       };
@@ -155,18 +152,12 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
         console.log('Reason changed from', formData.reason, 'to', leaveRequest.reason);
       }
       
-      // Check if dates changed
-      const newStartDate = leaveRequest.startDate ? new Date(leaveRequest.startDate).toISOString().split('T')[0] : '';
-      const newEndDate = leaveRequest.endDate ? new Date(leaveRequest.endDate).toISOString().split('T')[0] : '';
+      // Check if date changed
+      const newLeaveDate = leaveRequest.startDate ? new Date(leaveRequest.startDate).toISOString().split('T')[0] : '';
       
-      if (newStartDate !== formData.startDate) {
-        updates.startDate = newStartDate;
-        console.log('Start date changed from', formData.startDate, 'to', newStartDate);
-      }
-      
-      if (newEndDate !== formData.endDate) {
-        updates.endDate = newEndDate;
-        console.log('End date changed from', formData.endDate, 'to', newEndDate);
+      if (newLeaveDate !== formData.leaveDate) {
+        updates.leaveDate = newLeaveDate;
+        console.log('Leave date changed from', formData.leaveDate, 'to', newLeaveDate);
       }
       
       // Check if times changed
@@ -266,8 +257,7 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
         halfDayType: leaveRequest.halfDayType,
         startTime: leaveRequest.startTime || '',
         endTime: leaveRequest.endTime || '',
-        startDate: leaveRequest.startDate ? new Date(leaveRequest.startDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        endDate: leaveRequest.endDate ? new Date(leaveRequest.endDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        leaveDate: leaveRequest.startDate ? new Date(leaveRequest.startDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         reason: leaveRequest.reason || '',
         status: leaveRequest.status || 'pending',
       };
@@ -305,16 +295,8 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
       toast.error('Vui lòng chọn nhân viên');
       return false;
     }
-    if (!formData.startDate) {
-      toast.error('Vui lòng chọn ngày bắt đầu');
-      return false;
-    }
-    if (!formData.endDate) {
-      toast.error('Vui lòng chọn ngày kết thúc');
-      return false;
-    }
-    if (new Date(formData.startDate) > new Date(formData.endDate)) {
-      toast.error('Ngày kết thúc phải sau ngày bắt đầu');
+    if (!formData.leaveDate) {
+      toast.error('Vui lòng chọn ngày nghỉ phép');
       return false;
     }
     if (formData.leaveType === 'half_day' && !formData.halfDayType) {
@@ -349,7 +331,14 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
 
     setIsLoading(true);
     try {
-      await onSave(formData);
+      // Convert leaveDate to startDate and endDate for API compatibility
+      const dataToSave = {
+        ...formData,
+        startDate: formData.leaveDate,
+        endDate: formData.leaveDate
+      };
+      
+      await onSave(dataToSave);
       toast.success(mode === 'create' ? 'Thêm lịch nghỉ thành công!' : 'Cập nhật lịch nghỉ thành công!');
       
       // If editing, notify parent component to refresh data
@@ -375,62 +364,28 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
   const handleSingleDateSelect = useCallback((date: string) => {
     setFormData(prev => ({
       ...prev,
-      startDate: date,
-      endDate: date
+      leaveDate: date
     }));
     setSelectedDates([date]);
-    setShowMiniCalendar(false);
-  }, []);
-
-  const handleDateRangeSelect = useCallback((startDate: string, endDate: string) => {
-    setFormData(prev => ({
-      ...prev,
-      startDate,
-      endDate
-    }));
-    
-    // Generate array of dates between start and end
-    const dates = [];
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      dates.push(d.toISOString().split('T')[0]);
-    }
-    
-    setSelectedDates(dates);
     setShowMiniCalendar(false);
   }, []);
 
   const handleClearDates = useCallback(() => {
     setFormData(prev => ({
       ...prev,
-      startDate: '',
-      endDate: ''
+      leaveDate: ''
     }));
     setSelectedDates([]);
   }, []);
 
-  // Update selectedDates when startDate or endDate changes
+  // Update selectedDates when leaveDate changes
   useEffect(() => {
-    if (formData.startDate && formData.endDate) {
-      if (formData.startDate === formData.endDate) {
-        setSelectedDates([formData.startDate]);
-      } else {
-        const dates = [];
-        const start = new Date(formData.startDate);
-        const end = new Date(formData.endDate);
-        
-        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-          dates.push(d.toISOString().split('T')[0]);
-        }
-        
-        setSelectedDates(dates);
-      }
+    if (formData.leaveDate) {
+      setSelectedDates([formData.leaveDate]);
     } else {
       setSelectedDates([]);
     }
-  }, [formData.startDate, formData.endDate]);
+  }, [formData.leaveDate]);
 
   const selectedEmployee = employees.find(emp => emp._id === formData.employeeId);
   
@@ -456,17 +411,17 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
         console.error('mode:', mode);
       }
     }
-  }, [formData.employeeId, formData.leaveType, formData.startDate, formData.endDate, formData.startTime, formData.endTime, formData.reason, formData.status, mode, isInitialized]);
+  }, [formData.employeeId, formData.leaveType, formData.leaveDate, formData.startTime, formData.endTime, formData.reason, formData.status, mode, isInitialized]);
 
   return (
     <Card className="w-full max-w-3xl mx-auto bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200">
       <CardHeader className="bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-t-lg">
         <CardTitle className="flex items-center space-x-2">
           {mode === 'create' ? <Plus className="h-5 w-5" /> : <Calendar className="h-5 w-5" />}
-          <span>{mode === 'create' ? 'Thêm Lịch nghỉ mới' : 'Chỉnh sửa Lịch nghỉ'}</span>
+          <span>{mode === 'create' ? '新增請假' : '編輯請假'}</span>
         </CardTitle>
         <CardDescription className="text-green-100">
-          {mode === 'create' ? 'Tạo lịch nghỉ cho nhân viên' : 'Cập nhật thông tin lịch nghỉ'}
+          {mode === 'create' ? '新增請假' : '編輯請假'}
         </CardDescription>
       </CardHeader>
       <CardContent className="p-6">
@@ -475,19 +430,19 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
               <User className="h-4 w-4 text-green-600" />
-              <span>Chọn nhân viên *</span>
+              <span>選擇員工 *</span>
             </label>
             <Select 
               value={formData.employeeId} 
               onValueChange={(value) => handleInputChange('employeeId', value)}
             >
               <SelectTrigger className="border-green-300 focus:border-green-500 focus:ring-green-500">
-                <SelectValue placeholder="Chọn nhân viên" />
+                <SelectValue placeholder="選擇員工" />
               </SelectTrigger>
               <SelectContent>
                 {employees.filter(emp => emp.status === 'active').map((employee) => (
                   <SelectItem key={employee._id} value={employee._id}>
-                    {employee.employeeId} - {employee.name} ({employee.department})
+                        {employee.employeeId} - {employee.name} ({employee.department})
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -520,7 +475,7 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
                       Mã nhân viên: {leaveRequest.employeeId} • {leaveRequest.department}
                     </p>
                     <p className="text-xs text-yellow-700 mt-1">
-                      ⚠️ Không thể tìm thấy nhân viên trong danh sách. Vui lòng chọn lại từ dropdown.
+                      ⚠️ 無法找到員工。請從下拉選單中選擇。
                     </p>
                   </div>
                 </div>
@@ -532,19 +487,20 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
               <Calendar className="h-4 w-4 text-blue-600" />
-              <span>Loại nghỉ phép *</span>
+              <span>請假類型 *</span>
             </label>
             <Select 
               value={formData.leaveType} 
               onValueChange={(value: 'full_day' | 'half_day' | 'hourly') => handleInputChange('leaveType', value)}
             >
               <SelectTrigger className="border-blue-300 focus:border-blue-500 focus:ring-blue-500">
-                <SelectValue placeholder="Chọn loại nghỉ phép" />
+                <SelectValue placeholder="選擇請假類型" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="full_day">Nghỉ cả ngày</SelectItem>
-                <SelectItem value="half_day">Nghỉ nửa ngày</SelectItem>
-                <SelectItem value="hourly">Nghỉ theo giờ</SelectItem>
+                <SelectItem value="full_day">全薪假</SelectItem>
+                <SelectItem value="half_day">上午</SelectItem>
+                <SelectItem value="half_day">下午</SelectItem>
+                <SelectItem value="hourly">按時計薪</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -554,14 +510,14 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
                 <Clock className="h-4 w-4 text-orange-600" />
-                <span>Thời gian nghỉ *</span>
+                <span>請假時間 *</span>
               </label>
               <Select 
                 value={formData.halfDayType || ''} 
                 onValueChange={(value: 'morning' | 'afternoon' | 'evening') => handleInputChange('halfDayType', value)}
               >
                 <SelectTrigger className="border-orange-300 focus:border-orange-500 focus:ring-orange-500">
-                  <SelectValue placeholder="Chọn thời gian nghỉ" />
+                  <SelectValue placeholder="選擇請假時間" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="morning">{getHalfDayLabel('morning')}</SelectItem>
@@ -578,7 +534,7 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
                   <Clock className="h-4 w-4 text-purple-600" />
-                  <span>Giờ bắt đầu *</span>
+                  <span>開始時間 *</span>
                 </label>
                 <Input
                   type="time"
@@ -590,7 +546,7 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
                   <Clock className="h-4 w-4 text-purple-600" />
-                  <span>Giờ kết thúc *</span>
+                  <span>結束時間 *</span>
                 </label>
                 <Input
                   type="time"
@@ -606,7 +562,7 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
           <div className="space-y-3">
             <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
               <Calendar className="h-4 w-4 text-indigo-600" />
-              <span>Chọn ngày nghỉ *</span>
+              <span>選擇請假日期 *</span>
             </label>
             
             {/* Calendar Toggle Button */}
@@ -618,7 +574,7 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
                 className="border-indigo-300 text-indigo-600 hover:bg-indigo-50"
               >
                 <CalendarDays className="h-4 w-4 mr-2" />
-                {showMiniCalendar ? 'Ẩn lịch' : 'Hiện lịch'}
+                {showMiniCalendar ? '隱藏日曆' : '顯示日曆'}
               </Button>
               
               {selectedDates.length > 0 && (
@@ -629,7 +585,7 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
                   className="border-red-300 text-red-600 hover:bg-red-50"
                 >
                   <X className="h-4 w-4 mr-2" />
-                  Xóa ngày
+                  刪除日期
                 </Button>
               )}
             </div>
@@ -638,22 +594,21 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
             {showMiniCalendar && (
               <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
                 <MiniCalendar
-                  selectedStartDate={formData.startDate ? new Date(formData.startDate) : null}
-                  selectedEndDate={formData.endDate ? new Date(formData.endDate) : null}
+                  selectedStartDate={formData.leaveDate ? new Date(formData.leaveDate) : null}
+                  selectedEndDate={formData.leaveDate ? new Date(formData.leaveDate) : null}
                   onDateSelect={(date: Date) => handleSingleDateSelect(date.toISOString().split('T')[0])}
-                  onDateRangeSelect={(startDate: Date, endDate: Date) => handleDateRangeSelect(startDate.toISOString().split('T')[0], endDate.toISOString().split('T')[0])}
                   onClearDates={handleClearDates}
                   className="w-full"
                 />
               </div>
             )}
 
-            {/* Selected Dates Preview */}
+            {/* Selected Date Preview */}
             {selectedDates.length > 0 && (
               <div className="p-3 bg-indigo-50 rounded-lg border border-indigo-200">
                 <div className="flex items-center space-x-2 mb-2">
                   <MapPin className="h-4 w-4 text-indigo-600" />
-                  <span className="text-sm font-medium text-indigo-800">Ngày đã chọn:</span>
+                  <span className="text-sm font-medium text-indigo-800">已選擇日期:</span>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {selectedDates.map((date, index) => (
@@ -666,35 +621,22 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
                   ))}
                 </div>
                 <div className="mt-2 text-xs text-indigo-600">
-                  Tổng cộng: {selectedDates.length} ngày
+                      總共: 1 天
                 </div>
               </div>
             )}
 
-            {/* Manual Date Inputs (Fallback) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-600">
-                  Từ ngày (hoặc nhập thủ công)
-                </label>
-                <Input
-                  type="date"
-                  value={formData.startDate}
-                  onChange={(e) => handleInputChange('startDate', e.target.value)}
-                  className="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-600">
-                  Đến ngày (hoặc nhập thủ công)
-                </label>
-                <Input
-                  type="date"
-                  value={formData.endDate}
-                  onChange={(e) => handleInputChange('endDate', e.target.value)}
-                  className="border-gray-300 focus:border-green-500 focus:ring-green-500"
-                />
-              </div>
+            {/* Manual Date Input (Fallback) */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-600">
+                請假日期 (或手動輸入)
+              </label>
+              <Input
+                type="date"
+                value={formData.leaveDate}
+                onChange={(e) => handleInputChange('leaveDate', e.target.value)}
+                className="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+              />
             </div>
           </div>
 
@@ -702,10 +644,10 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
               <FileText className="h-4 w-4 text-teal-600" />
-              <span>Lý do nghỉ (tùy chọn)</span>
+              <span>請假原因 (可選)</span>
             </label>
             <Textarea
-              placeholder="Nhập lý do nghỉ phép..."
+              placeholder="請輸入請假原因..."
               value={formData.reason}
               onChange={(e) => handleInputChange('reason', e.target.value)}
               rows={3}
@@ -717,7 +659,7 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
               <div className={`w-3 h-3 rounded-full ${formData.status === 'approved' ? 'bg-green-500' : formData.status === 'rejected' ? 'bg-red-500' : 'bg-yellow-500'}`}></div>
-              <span>Trạng thái *</span>
+              <span>狀態 *</span>
             </label>
             <Select 
               value={formData.status} 
@@ -727,9 +669,9 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="pending">Chờ duyệt</SelectItem>
-                <SelectItem value="approved">Đã duyệt</SelectItem>
-                <SelectItem value="rejected">Từ chối</SelectItem>
+                <SelectItem value="pending">待審核</SelectItem>
+                <SelectItem value="approved">已批准</SelectItem>
+                <SelectItem value="rejected">已拒絕</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -739,8 +681,8 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
                 <Paperclip className="h-4 w-4 text-purple-600" />
-                <span>Tài liệu đính kèm</span>
-                <span className="text-xs text-gray-500">({leaveRequest.attachments.length} tài liệu)</span>
+                <span>附件</span>
+                <span className="text-xs text-gray-500">({leaveRequest.attachments.length} 附件)</span>
               </label>
               <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
                 <AttachmentViewer 
@@ -748,7 +690,7 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
                   canDelete={false}
                 />
                 <p className="text-xs text-gray-600 mt-2">
-                  Tài liệu đính kèm chỉ có thể xem, không thể chỉnh sửa từ form này
+                  附件只能查看，無法從此表單編輯
                 </p>
               </div>
             </div>
@@ -764,12 +706,12 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
               {isLoading ? (
                 <div className="flex items-center space-x-2">
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                  <span>Đang xử lý...</span>
+                  <span>正在處理...</span>
                 </div>
               ) : (
                 <div className="flex items-center space-x-2">
                   <Save className="h-4 w-4" />
-                  <span>{mode === 'create' ? 'Thêm lịch nghỉ' : 'Cập nhật'}</span>
+                  <span>{mode === 'create' ? '新增請假' : '更新'}</span>  
                 </div>
               )}
             </Button>
@@ -782,7 +724,7 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
             >
               <div className="flex items-center space-x-2">
                 <X className="h-4 w-4" />
-                <span>Hủy</span>
+                <span>取消</span>
               </div>
             </Button>
           </div>

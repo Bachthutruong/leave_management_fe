@@ -8,7 +8,7 @@ interface MiniCalendarProps {
   selectedStartDate: Date | null;
   selectedEndDate: Date | null;
   onDateSelect: (date: Date) => void;
-  onDateRangeSelect: (startDate: Date, endDate: Date) => void;
+  onDateRangeSelect?: (startDate: Date, endDate: Date) => void;
   onClearDates?: () => void;
   className?: string;
 }
@@ -53,7 +53,9 @@ const MiniCalendar: React.FC<MiniCalendarProps> = ({
         // Complete range selection
         const start = tempStartDate < date ? tempStartDate : date;
         const end = tempStartDate < date ? date : tempStartDate;
-        onDateRangeSelect(start, end);
+        if (onDateRangeSelect) {
+          onDateRangeSelect(start, end);
+        }
         setTempStartDate(null);
         setIsSelectingRange(false);
       }
@@ -184,18 +186,18 @@ const MiniCalendar: React.FC<MiniCalendarProps> = ({
           onClick={() => setIsSelectingRange(!isSelectingRange)}
           className="w-full"
         >
-          {isSelectingRange ? 'Đang chọn khoảng thời gian...' : 'Chọn khoảng thời gian'}
+          {isSelectingRange ? '正在選擇時間...' : '選擇時間'}
         </Button>
         
         {isSelectingRange && tempStartDate && (
           <div className="text-xs text-gray-600 text-center p-2 bg-blue-50 rounded-md">
-            Đã chọn: {format(tempStartDate, 'dd/MM/yyyy')} - Chọn ngày kết thúc
+            已選擇: {format(tempStartDate, 'dd/MM/yyyy')} - 選擇結束日期
           </div>
         )}
         
         {selectedStartDate && selectedEndDate && (
           <div className="text-xs text-green-600 text-center p-2 bg-green-50 rounded-md">
-            Khoảng thời gian: {format(selectedStartDate, 'dd/MM/yyyy')} - {format(selectedEndDate, 'dd/MM/yyyy')}
+            時間範圍: {format(selectedStartDate, 'dd/MM/yyyy')} - {format(selectedEndDate, 'dd/MM/yyyy')}
           </div>
         )}
 
@@ -209,7 +211,7 @@ const MiniCalendar: React.FC<MiniCalendarProps> = ({
               className="flex-1 text-red-600 border-red-300 hover:bg-red-50 hover:border-red-400"
             >
               <X className="h-3 w-3 mr-1" />
-              Xóa ngày
+              刪除日期
             </Button>
             <Button
               variant="outline"
@@ -218,7 +220,7 @@ const MiniCalendar: React.FC<MiniCalendarProps> = ({
               className="flex-1 text-gray-600 border-gray-300 hover:bg-gray-50"
             >
               <RotateCcw className="h-3 w-3 mr-1" />
-              Reset
+              重置
             </Button>
           </div>
         )}

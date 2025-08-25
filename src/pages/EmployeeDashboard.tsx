@@ -25,6 +25,15 @@ import {
   X
 } from 'lucide-react';
 
+// Helper function to get month name in Traditional Chinese
+const getMonthName = (month: number): string => {
+  const months = [
+    '一月', '二月', '三月', '四月', '五月', '六月',
+    '七月', '八月', '九月', '十月', '十一月', '十二月'
+  ];
+  return months[month - 1];
+};
+
 const EmployeeDashboard: React.FC = () => {
   const { user, logout } = useAuthStore();
   const [myRequests, setMyRequests] = useState<LeaveRequest[]>([]);
@@ -39,6 +48,10 @@ const EmployeeDashboard: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [leaveTypeFilter, setLeaveTypeFilter] = useState<string>('all');
+  
+  // Date filter state
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   
   // Detail modal state
   const [selectedRequest, setSelectedRequest] = useState<LeaveRequest | null>(null);
@@ -71,27 +84,33 @@ const EmployeeDashboard: React.FC = () => {
     };
   }, []);
 
+  // Debug: Log when myRequests changes
+  useEffect(() => {
+    console.log('myRequests updated:', myRequests.length, 'requests');
+    console.log('Current filter:', selectedYear, selectedMonth);
+  }, [myRequests, selectedYear, selectedMonth]);
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'approved':
         return (
           <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
             <CheckCircle className="w-3 h-3 mr-1" />
-            Đã duyệt
+            已核准
           </span>
         );
       case 'rejected':
         return (
           <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
             <XCircle className="w-3 h-3 mr-1" />
-            Từ chối
+            已拒絕
           </span>
         );
       case 'pending':
         return (
           <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
             <ClockIcon className="w-3 h-3 mr-1" />
-            Chờ duyệt
+            待核准
           </span>
         );
       default:
@@ -102,18 +121,23 @@ const EmployeeDashboard: React.FC = () => {
   const getLeaveTypeText = (leaveType: string, halfDayType?: string) => {
     switch (leaveType) {
       case 'full_day':
-        return 'Nghỉ cả ngày';
+        return '全天假';
       case 'half_day':
-        return `Nghỉ nửa ngày (${halfDayType === 'morning' ? 'Sáng' : halfDayType === 'afternoon' ? 'Chiều' : 'Tối'})`;
+        return `半天假 (${halfDayType === 'morning' ? '上午' : halfDayType === 'afternoon' ? '下午' : '晚上'})`;
       case 'hourly':
-        return 'Nghỉ theo giờ';
+        return '時假';
       default:
-        return 'Nghỉ';
+        return '請假';
     }
   };
 
-  // Filter and pagination logic
+  // Filter and pagination logic - includes date filtering
   const filteredRequests = myRequests.filter(request => {
+    const requestDate = new Date(request.startDate);
+    const requestYear = requestDate.getFullYear();
+    const requestMonth = requestDate.getMonth() + 1;
+    
+    const matchesDate = requestYear === selectedYear && requestMonth === selectedMonth;
     const matchesSearch = searchTerm === '' || 
       request.reason?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       request.employeeName.toLowerCase().includes(searchTerm.toLowerCase());
@@ -121,8 +145,23 @@ const EmployeeDashboard: React.FC = () => {
     const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
     const matchesType = leaveTypeFilter === 'all' || request.leaveType === leaveTypeFilter;
     
-    return matchesSearch && matchesStatus && matchesType;
+    // Debug log
+    console.log('Filtering request:', {
+      requestDate: request.startDate,
+      requestYear,
+      requestMonth,
+      selectedYear,
+      selectedMonth,
+      matchesDate,
+      employeeName: request.employeeName,
+      reason: request.reason
+    });
+    
+    return matchesDate && matchesSearch && matchesStatus && matchesType;
   });
+
+  // Debug log for filtered results
+  console.log('Filtered requests count:', filteredRequests.length, 'for year:', selectedYear, 'month:', selectedMonth);
 
   // Calculate pagination
   const totalItems = filteredRequests.length;
@@ -136,9 +175,15 @@ const EmployeeDashboard: React.FC = () => {
     setCurrentPage(1); // Reset to first page when filters change
   }, [filteredRequests.length, itemsPerPage]);
 
-  const pendingRequests = myRequests.filter(req => req.status === 'pending');
-  const approvedRequests = myRequests.filter(req => req.status === 'approved');
-  const rejectedRequests = myRequests.filter(req => req.status === 'rejected');
+  // Reset page when date filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedYear, selectedMonth]);
+
+  // Use filtered requests for stats
+  const pendingRequests = filteredRequests.filter(req => req.status === 'pending');
+  const approvedRequests = filteredRequests.filter(req => req.status === 'approved');
+  const rejectedRequests = filteredRequests.filter(req => req.status === 'rejected');
   
   const handleRowClick = (request: LeaveRequest) => {
     setSelectedRequest(request);
@@ -153,38 +198,35 @@ const EmployeeDashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 shadow-lg">
+      <header className="bg-gradient-to-r from-green-600 to-emerald-600 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center h-auto sm:h-20 py-4 sm:py-0 gap-4 sm:gap-0">
-            {/* Logo and Title Section */}
-            <div className="flex items-center space-x-3 sm:space-x-4 w-full sm:w-auto">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm shrink-0">
+          <div className="flex justify-between items-center min-h-[5rem] py-4">
+            {/* Company Logo and Name - Left Side */}
+            <div className="flex items-center space-x-2 sm:space-x-4 flex-1 min-w-0">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm flex-shrink-0">
                 <Building2 className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
               </div>
-              <div className="min-w-0 flex-1 sm:flex-none">
-                <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-white leading-tight">
-                  Hệ thống Quản lý
-                  <br className="sm:hidden" />
-                  <span className="sm:ml-1">Nghỉ phép</span>
+              <div className="min-w-0 flex-1">
+                <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-white leading-tight truncate">
+                  請假管理系統
                 </h1>
-                <p className="text-xs sm:text-sm text-green-100 mt-1">Giao diện nhân viên</p>
+                <p className="text-xs sm:text-sm text-green-100 truncate">ABC 有限公司</p>
               </div>
             </div>
             
-            {/* User Info and Logout Section */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
-              <div className="text-left sm:text-right text-white w-full sm:w-auto">
-                <p className="text-sm font-medium truncate">{user?.name}</p>
-                <p className="text-xs text-green-100 truncate">{(user as Employee)?.department}</p>
+            {/* Employee Name and Logout Button - Right Side */}
+            <div className="flex flex-col items-end space-y-1 sm:space-y-2 flex-shrink-0 ml-2 sm:ml-4">
+              <div className="text-right text-white">
+                <p className="text-xs sm:text-sm font-medium truncate max-w-[120px] sm:max-w-none">{user?.name}</p>
+                <p className="text-xs text-green-100 truncate max-w-[120px] sm:max-w-none">{(user as Employee)?.department}</p>
               </div>
               <Button 
                 variant="outline" 
                 size="sm" 
                 onClick={logout}
-                className="border-white/30 bg-transparent text-white hover:bg-white/20 backdrop-blur-sm w-full sm:w-auto"
+                className="border-white/30 bg-green-700/50 text-white hover:bg-green-700/70 backdrop-blur-sm text-xs sm:text-sm px-2 sm:px-3"
               >
-                <span className="hidden xs:inline">Đăng xuất</span>
-                <span className="xs:hidden">Thoát</span>
+                登出
               </Button>
             </div>
           </div>
@@ -193,45 +235,74 @@ const EmployeeDashboard: React.FC = () => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Year and Month Filter */}
+        <div className="mb-6">
+          <div className="flex flex-col items-center space-y-2">
+            <div className="flex items-center justify-center space-x-4">
+              <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
+                <SelectTrigger className="w-32 bg-white border-2 border-gray-300 hover:border-green-500 focus:border-green-500">
+                  <SelectValue placeholder="選擇年份" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 50 }, (_, i) => 2000 + i).map(year => (
+                    <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              <Select value={selectedMonth.toString()} onValueChange={(value) => setSelectedMonth(parseInt(value))}>
+                <SelectTrigger className="w-32 bg-white border-2 border-gray-300 hover:border-green-500 focus:border-green-500">
+                  <SelectValue placeholder="選擇月份" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
+                    <SelectItem key={month} value={month.toString()}>
+                      {getMonthName(month)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {/* Filter Status Display */}
+            {/* <div className="text-sm text-gray-600 bg-gray-100 px-4 py-2 rounded-lg">
+              Đang hiển thị dữ liệu cho: <span className="font-semibold text-green-600">{selectedYear} - {getMonthName(selectedMonth)}</span>
+              {filteredRequests.length === 0 && (
+                <span className="text-red-500 ml-2">(Không có dữ liệu cho thời gian này)</span>
+              )}
+            </div> */}
+          </div>
+        </div>
+
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Tổng đơn</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
+        <div className="grid grid-cols-3 gap-2 mb-4">
+          <Card className="h-20">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 px-3 py-2">
+              <CardTitle className="text-sm font-medium">已核准</CardTitle>
+              <CheckCircle className="h-4 w-4 text-green-600" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{myRequests.length}</div>
+            <CardContent className="px-3 py-1">
+              <div className="text-xl font-bold text-green-600">{approvedRequests.length}</div>
             </CardContent>
           </Card>
           
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Chờ duyệt</CardTitle>
-              <ClockIcon className="h-4 w-4 text-muted-foreground" />
+          <Card className="h-20">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 px-3 py-2">
+              <CardTitle className="text-sm font-medium">待核准</CardTitle>
+              <ClockIcon className="h-4 w-4 text-yellow-600" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-yellow-600">{pendingRequests.length}</div>
+            <CardContent className="px-3 py-1">
+              <div className="text-xl font-bold text-yellow-600">{pendingRequests.length}</div>
             </CardContent>
           </Card>
           
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Đã duyệt</CardTitle>
-              <CheckCircle className="h-4 w-4 text-muted-foreground" />
+          <Card className="h-20">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 px-3 py-2">
+              <CardTitle className="text-sm font-medium">已拒絕</CardTitle>
+              <XCircle className="h-4 w-4 text-red-600" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">{approvedRequests.length}</div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Từ chối</CardTitle>
-              <XCircle className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600">{rejectedRequests.length}</div>
+            <CardContent className="px-3 py-1">
+              <div className="text-xl font-bold text-red-600">{rejectedRequests.length}</div>
             </CardContent>
           </Card>
         </div>
@@ -243,27 +314,40 @@ const EmployeeDashboard: React.FC = () => {
               value="calendar" 
               className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 rounded-lg transition-all duration-200 text-xs sm:text-sm py-2"
             >
-              <span className="hidden xs:inline">Lịch nghỉ phép</span>
-              <span className="xs:hidden">Lịch</span>
+              <span className="hidden xs:inline">請假日曆</span>
+              <span className="xs:hidden">日曆</span>
             </TabsTrigger>
             <TabsTrigger 
               value="request" 
               className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-green-600 rounded-lg transition-all duration-200 text-xs sm:text-sm py-2"
             >
-              <span className="hidden xs:inline">Đăng ký nghỉ phép</span>
-              <span className="xs:hidden">Đăng ký</span>
+              <span className="hidden xs:inline">申請請假</span>
+              <span className="xs:hidden">申請</span>
             </TabsTrigger>
             <TabsTrigger 
               value="history" 
               className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-purple-600 rounded-lg transition-all duration-200 text-xs sm:text-sm py-2"
             >
-              <span className="hidden xs:inline">Lịch sử đơn</span>
-              <span className="xs:hidden">Lịch sử</span>
+              <span className="hidden xs:inline">申請歷史</span>
+              <span className="xs:hidden">歷史</span>
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="calendar" className="space-y-4">
-            <LeaveCalendar />
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-800">
+                📅 請假日曆目前顯示： <span className="font-semibold">{selectedYear} - {getMonthName(selectedMonth)}</span>
+              </p>
+            </div>
+            <LeaveCalendar 
+              selectedYear={selectedYear}
+              selectedMonth={selectedMonth}
+              onDateChange={(year, month) => {
+                console.log('Calendar date changed:', year, month);
+                setSelectedYear(year);
+                setSelectedMonth(month);
+              }}
+            />
           </TabsContent>
 
           <TabsContent value="request" className="space-y-4">
@@ -273,9 +357,9 @@ const EmployeeDashboard: React.FC = () => {
           <TabsContent value="history" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Lịch sử đơn xin nghỉ phép</CardTitle>
+                <CardTitle>請假申請歷史</CardTitle>
                 <CardDescription>
-                  Xem tất cả đơn xin nghỉ phép của bạn
+                  查看您的所有請假申請
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -285,7 +369,7 @@ const EmployeeDashboard: React.FC = () => {
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                       <Input
-                        placeholder="Tìm kiếm theo lý do hoặc tên..."
+                        placeholder="搜尋原因或姓名..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-10"
@@ -295,25 +379,25 @@ const EmployeeDashboard: React.FC = () => {
                   
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
                     <SelectTrigger className="w-full sm:w-40">
-                      <SelectValue placeholder="Trạng thái" />
+                      <SelectValue placeholder="狀態" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Tất cả trạng thái</SelectItem>
-                      <SelectItem value="pending">Chờ duyệt</SelectItem>
-                      <SelectItem value="approved">Đã duyệt</SelectItem>
-                      <SelectItem value="rejected">Từ chối</SelectItem>
+                      <SelectItem value="all">所有狀態</SelectItem>
+                      <SelectItem value="pending">待核准</SelectItem>
+                      <SelectItem value="approved">已核准</SelectItem>
+                      <SelectItem value="rejected">已拒絕</SelectItem>
                     </SelectContent>
                   </Select>
                   
                   <Select value={leaveTypeFilter} onValueChange={setLeaveTypeFilter}>
                     <SelectTrigger className="w-full sm:w-40">
-                      <SelectValue placeholder="Loại nghỉ" />
+                      <SelectValue placeholder="請假類型" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Tất cả loại</SelectItem>
-                      <SelectItem value="full_day">Cả ngày</SelectItem>
-                      <SelectItem value="half_day">Nửa ngày</SelectItem>
-                      <SelectItem value="hourly">Theo giờ</SelectItem>
+                      <SelectItem value="all">所有類型</SelectItem>
+                      <SelectItem value="full_day">全天假</SelectItem>
+                      <SelectItem value="half_day">半天假</SelectItem>
+                      <SelectItem value="hourly">時假</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -323,10 +407,11 @@ const EmployeeDashboard: React.FC = () => {
                   <div className="flex items-center justify-center h-32">
                     <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                   </div>
-                ) : myRequests.length === 0 ? (
+                ) : filteredRequests.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <FileText className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                    <p>Chưa có đơn xin nghỉ phép nào</p>
+                    <p>{selectedYear} - {getMonthName(selectedMonth)} 沒有請假申請</p>
+                    <p className="text-sm mt-2">請嘗試選擇其他時間或檢查篩選條件</p>
                   </div>
                 ) : (
                   <>
@@ -334,11 +419,11 @@ const EmployeeDashboard: React.FC = () => {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead className="w-[200px]">Loại nghỉ</TableHead>
-                            <TableHead>Thời gian</TableHead>
-                            <TableHead className="max-w-xs">Lý do</TableHead>
-                            <TableHead className="w-[120px]">Trạng thái</TableHead>
-                            <TableHead className="w-[100px]">Tài liệu</TableHead>
+                            <TableHead className="w-[200px]">請假類型</TableHead>
+                            <TableHead>時間</TableHead>
+                            <TableHead className="max-w-xs">原因</TableHead>
+                            <TableHead className="w-[120px]">狀態</TableHead>
+                            <TableHead className="w-[100px]">文件</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -354,8 +439,8 @@ const EmployeeDashboard: React.FC = () => {
                                 </TableCell>
                                 <TableCell>
                                   <div className="text-sm">
-                                    <div>Từ: {format(new Date(request.startDate), 'dd/MM/yyyy', { locale: vi })}</div>
-                                    <div>Đến: {format(new Date(request.endDate), 'dd/MM/yyyy', { locale: vi })}</div>
+                                    <div>從：{format(new Date(request.startDate), 'dd/MM/yyyy', { locale: vi })}</div>
+                                    <div>至：{format(new Date(request.endDate), 'dd/MM/yyyy', { locale: vi })}</div>
                                     {request.startTime && request.endTime && (
                                       <div className="text-xs text-muted-foreground">
                                         {request.startTime} - {request.endTime}
@@ -366,11 +451,11 @@ const EmployeeDashboard: React.FC = () => {
                                 <TableCell>
                                   <div className="max-w-xs">
                                     <div className="truncate text-sm">
-                                      {request.reason || 'Không có lý do'}
+                                      {request.reason || '無原因'}
                                     </div>
                                     {request.rejectionReason && (
                                       <div className="text-xs text-destructive mt-1 truncate">
-                                        Lý do từ chối: {request.rejectionReason}
+                                        拒絕原因：{request.rejectionReason}
                                       </div>
                                     )}
                                   </div>
@@ -381,10 +466,10 @@ const EmployeeDashboard: React.FC = () => {
                                 <TableCell>
                                   {request.attachments && request.attachments.length > 0 ? (
                                     <div className="text-sm font-medium">
-                                      {request.attachments.length} tài liệu
+                                      {request.attachments.length} 個文件
                                     </div>
                                   ) : (
-                                    <div className="text-sm text-muted-foreground">Không có</div>
+                                    <div className="text-sm text-muted-foreground">無</div>
                                   )}
                                 </TableCell>
                               </TableRow>
@@ -394,8 +479,8 @@ const EmployeeDashboard: React.FC = () => {
                               <TableCell colSpan={5} className="h-24 text-center">
                                 <div className="flex flex-col items-center justify-center text-muted-foreground">
                                   <Search className="h-8 w-8 mb-2 opacity-50" />
-                                  <p>Không tìm thấy kết quả phù hợp</p>
-                                  <p className="text-xs mt-1">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm</p>
+                                  <p>找不到符合的結果</p>
+                                  <p className="text-xs mt-1">請嘗試更改篩選條件或搜尋關鍵字</p>
                                 </div>
                               </TableCell>
                             </TableRow>
@@ -407,7 +492,7 @@ const EmployeeDashboard: React.FC = () => {
                     {/* Pagination Controls */}
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <span>Hiển thị</span>
+                        <span>顯示</span>
                         <Select value={String(itemsPerPage)} onValueChange={(value) => setItemsPerPage(Number(value))}>
                           <SelectTrigger className="w-20">
                             <SelectValue />
@@ -419,7 +504,7 @@ const EmployeeDashboard: React.FC = () => {
                             <SelectItem value="50">50</SelectItem>
                           </SelectContent>
                         </Select>
-                        <span>trên tổng số {totalItems} đơn</span>
+                        <span>共 {totalItems} 個申請</span>
                       </div>
                       
                       <div className="flex items-center gap-2">
@@ -430,7 +515,7 @@ const EmployeeDashboard: React.FC = () => {
                           disabled={currentPage === 1}
                         >
                           <ChevronLeft className="h-4 w-4" />
-                          Trước
+                          上一頁
                         </Button>
                         
                         <div className="flex items-center gap-1">
@@ -466,7 +551,7 @@ const EmployeeDashboard: React.FC = () => {
                           onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                           disabled={currentPage === totalPages}
                         >
-                          Sau
+                          下一頁
                           <ChevronRight className="h-4 w-4" />
                         </Button>
                       </div>
@@ -484,7 +569,7 @@ const EmployeeDashboard: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b">
-              <h2 className="text-xl font-semibold">Chi tiết đơn xin nghỉ phép</h2>
+              <h2 className="text-xl font-semibold">請假申請詳情</h2>
               <Button variant="ghost" size="sm" onClick={closeDetailModal}>
                 <X className="h-4 w-4" />
               </Button>
@@ -494,27 +579,27 @@ const EmployeeDashboard: React.FC = () => {
               {/* Basic Info */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <h3 className="font-medium text-gray-900 mb-2">Thông tin cơ bản</h3>
+                  <h3 className="font-medium text-gray-900 mb-2">基本資訊</h3>
                   <div className="space-y-2 text-sm">
-                    <div><span className="font-medium">Loại nghỉ:</span> {getLeaveTypeText(selectedRequest.leaveType, selectedRequest.halfDayType)}</div>
-                    <div><span className="font-medium">Trạng thái:</span> {getStatusBadge(selectedRequest.status)}</div>
-                    <div><span className="font-medium">Ngày tạo:</span> {format(new Date(selectedRequest.createdAt), 'dd/MM/yyyy HH:mm', { locale: vi })}</div>
+                    <div><span className="font-medium">請假類型：</span> {getLeaveTypeText(selectedRequest.leaveType, selectedRequest.halfDayType)}</div>
+                    <div><span className="font-medium">狀態：</span> {getStatusBadge(selectedRequest.status)}</div>
+                    <div><span className="font-medium">建立日期：</span> {format(new Date(selectedRequest.createdAt), 'dd/MM/yyyy HH:mm', { locale: vi })}</div>
                     {selectedRequest.approvedBy && (
-                      <div><span className="font-medium">Duyệt bởi:</span> {selectedRequest.approvedBy}</div>
+                      <div><span className="font-medium">核准者：</span> {selectedRequest.approvedBy}</div>
                     )}
                     {selectedRequest.approvedAt && (
-                      <div><span className="font-medium">Ngày duyệt:</span> {format(new Date(selectedRequest.approvedAt), 'dd/MM/yyyy HH:mm', { locale: vi })}</div>
+                      <div><span className="font-medium">核准日期：</span> {format(new Date(selectedRequest.approvedAt), 'dd/MM/yyyy HH:mm', { locale: vi })}</div>
                     )}
                   </div>
                 </div>
                 
                 <div>
-                  <h3 className="font-medium text-gray-900 mb-2">Thời gian nghỉ</h3>
+                  <h3 className="font-medium text-gray-900 mb-2">請假時間</h3>
                   <div className="space-y-2 text-sm">
-                    <div><span className="font-medium">Từ ngày:</span> {format(new Date(selectedRequest.startDate), 'dd/MM/yyyy', { locale: vi })}</div>
-                    <div><span className="font-medium">Đến ngày:</span> {format(new Date(selectedRequest.endDate), 'dd/MM/yyyy', { locale: vi })}</div>
+                    <div><span className="font-medium">開始日期：</span> {format(new Date(selectedRequest.startDate), 'dd/MM/yyyy', { locale: vi })}</div>
+                    <div><span className="font-medium">結束日期：</span> {format(new Date(selectedRequest.endDate), 'dd/MM/yyyy', { locale: vi })}</div>
                     {selectedRequest.startTime && selectedRequest.endTime && (
-                      <div><span className="font-medium">Giờ:</span> {selectedRequest.startTime} - {selectedRequest.endTime}</div>
+                      <div><span className="font-medium">時間：</span> {selectedRequest.startTime} - {selectedRequest.endTime}</div>
                     )}
                   </div>
                 </div>
@@ -523,7 +608,7 @@ const EmployeeDashboard: React.FC = () => {
               {/* Reason */}
               {selectedRequest.reason && (
                 <div>
-                  <h3 className="font-medium text-gray-900 mb-2">Lý do nghỉ</h3>
+                  <h3 className="font-medium text-gray-900 mb-2">請假原因</h3>
                   <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
                     {selectedRequest.reason}
                   </p>
@@ -533,7 +618,7 @@ const EmployeeDashboard: React.FC = () => {
               {/* Rejection Reason */}
               {selectedRequest.rejectionReason && (
                 <div>
-                  <h3 className="font-medium text-gray-900 mb-2 text-red-600">Lý do từ chối</h3>
+                  <h3 className="font-medium text-gray-900 mb-2 text-red-600">拒絕原因</h3>
                   <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg border border-red-200">
                     {selectedRequest.rejectionReason}
                   </p>
@@ -543,7 +628,7 @@ const EmployeeDashboard: React.FC = () => {
               {/* Attachments */}
               {selectedRequest.attachments && selectedRequest.attachments.length > 0 && (
                 <div>
-                  <h3 className="font-medium text-gray-900 mb-2">Tài liệu đính kèm</h3>
+                  <h3 className="font-medium text-gray-900 mb-2">附件文件</h3>
                   <AttachmentViewer attachments={selectedRequest.attachments} />
                 </div>
               )}

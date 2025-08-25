@@ -17,8 +17,7 @@ interface LeaveRequestFormData {
   halfDayType?: 'morning' | 'afternoon' | 'evening';
   startTime?: string;
   endTime?: string;
-  startDate: string;
-  endDate: string;
+  leaveDate: string; // Changed from startDate/endDate to single leaveDate
   reason?: string;
 }
 
@@ -42,15 +41,13 @@ const LeaveRequestForm: React.FC = () => {
   } = useForm<LeaveRequestFormData>({
     defaultValues: {
       leaveType: 'full_day',
-      startDate: new Date().toISOString().split('T')[0],
-      endDate: new Date().toISOString().split('T')[0],
+      leaveDate: new Date().toISOString().split('T')[0],
     },
     mode: 'onChange',
   });
 
   const leaveType = watch('leaveType');
-  const startDate = watch('startDate');
-  const endDate = watch('endDate');
+  const leaveDate = watch('leaveDate');
 
   // Memoized functions for better performance
   const loadHalfDayOptions = useCallback(async () => {
@@ -75,22 +72,15 @@ const LeaveRequestForm: React.FC = () => {
     return day === 0 || day === 6;
   }, []);
 
-  // Update selectedDates when form dates change
+  // Update selectedDates when form date changes
   useEffect(() => {
-    if (startDate && endDate) {
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      const dates = [];
-      
-      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-        dates.push(new Date(d));
-      }
-      
-      setSelectedDates(dates);
+    if (leaveDate) {
+      const date = new Date(leaveDate);
+      setSelectedDates([date]);
     } else {
       setSelectedDates([]);
     }
-  }, [startDate, endDate]);
+  }, [leaveDate]);
 
   useEffect(() => {
     loadHalfDayOptions();
@@ -101,7 +91,7 @@ const LeaveRequestForm: React.FC = () => {
     const validFiles = files.filter(file => {
       const maxSize = 10 * 1024 * 1024; // 10MB
       if (file.size > maxSize) {
-        toast.error(`File ${file.name} quá lớn (tối đa 10MB)`);
+        toast.error(`檔案 ${file.name} 太大（最大 10MB）`);
         return false;
       }
       return true;
@@ -109,7 +99,7 @@ const LeaveRequestForm: React.FC = () => {
     
     if (validFiles.length > 0) {
       setAttachments(prev => [...prev, ...validFiles]);
-      toast.success(`Đã thêm ${validFiles.length} file`);
+      toast.success(`已新增 ${validFiles.length} 個檔案`);
     }
   }, []);
 
@@ -119,31 +109,20 @@ const LeaveRequestForm: React.FC = () => {
 
   const handleSingleDateSelect = useCallback((date: Date) => {
     const dateStr = date.toISOString().split('T')[0];
-    setValue('startDate', dateStr);
-    setValue('endDate', dateStr);
-    setShowMiniCalendar(false);
-    trigger(); // Trigger validation
-  }, [setValue, trigger]);
-
-  const handleDateRangeSelect = useCallback((startDate: Date, endDate: Date) => {
-    const startStr = startDate.toISOString().split('T')[0];
-    const endStr = endDate.toISOString().split('T')[0];
-    setValue('startDate', startStr);
-    setValue('endDate', endStr);
+    setValue('leaveDate', dateStr);
     setShowMiniCalendar(false);
     trigger(); // Trigger validation
   }, [setValue, trigger]);
 
   const handleClearDates = useCallback(() => {
-    setValue('startDate', '');
-    setValue('endDate', '');
+    setValue('leaveDate', '');
     setSelectedDates([]);
     trigger(); // Trigger validation
   }, [setValue, trigger]);
 
   const onSubmit = async (data: LeaveRequestFormData) => {
     if (!isValid) {
-      toast.error('Vui lòng kiểm tra lại thông tin');
+      toast.error('請檢查資訊');
       return;
     }
 
@@ -151,13 +130,24 @@ const LeaveRequestForm: React.FC = () => {
     try {
       const formData = new FormData();
       
-      // Add form data
-      Object.keys(data).forEach(key => {
-        const value = (data as any)[key];
-        if (value !== undefined && value !== '') {
-          formData.append(key, value);
-        }
-      });
+      // Convert leaveDate to startDate and endDate for API compatibility
+      formData.append('startDate', data.leaveDate);
+      formData.append('endDate', data.leaveDate);
+      
+      // Add other form data
+      formData.append('leaveType', data.leaveType);
+      if (data.halfDayType) {
+        formData.append('halfDayType', data.halfDayType);
+      }
+      if (data.startTime) {
+        formData.append('startTime', data.startTime);
+      }
+      if (data.endTime) {
+        formData.append('endTime', data.endTime);
+      }
+      if (data.reason) {
+        formData.append('reason', data.reason);
+      }
 
       // Add attachments
       attachments.forEach(file => {
@@ -165,7 +155,7 @@ const LeaveRequestForm: React.FC = () => {
       });
 
       await leaveRequestAPI.create(formData);
-      toast.success('Đơn xin nghỉ đã được gửi thành công!');
+      toast.success('請假申請已成功送出！');
       
       // Reset form
       reset();
@@ -176,7 +166,7 @@ const LeaveRequestForm: React.FC = () => {
       // Trigger refresh of parent components
       window.dispatchEvent(new CustomEvent('leaveRequestSubmitted'));
     } catch (error: any) {
-      const message = error.response?.data?.message || 'Gửi đơn thất bại!';
+      const message = error.response?.data?.message || '送出申請失敗！';
       toast.error(message);
     } finally {
       setIsLoading(false);
@@ -192,10 +182,10 @@ const LeaveRequestForm: React.FC = () => {
       <CardHeader className="bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-t-lg">
         <CardTitle className="flex items-center gap-3 text-xl">
           <CalendarDays className="h-6 w-6" />
-          Đăng ký nghỉ phép
+          申請請假
         </CardTitle>
         <CardDescription className="text-green-100">
-          Vui lòng điền đầy đủ thông tin để đăng ký nghỉ phép
+          請填寫完整資訊以申請請假
         </CardDescription>
       </CardHeader>
       
@@ -204,24 +194,24 @@ const LeaveRequestForm: React.FC = () => {
         <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
           <div className="flex items-center gap-3 mb-3">
             <User className="h-5 w-5 text-blue-600" />
-            <h3 className="font-semibold text-blue-800">Thông tin nhân viên</h3>
+            <h3 className="font-semibold text-blue-800">員工資訊</h3>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-blue-700">Mã nhân viên:</span>
+              <span className="text-sm font-medium text-blue-700">員工編號:</span>  
               <span className="text-sm text-blue-600 bg-blue-100 px-2 py-1 rounded-md">
                 {employee?.employeeId}
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-blue-700">Họ tên:</span>
+              <span className="text-sm font-medium text-blue-700">姓名:</span>
               <span className="text-sm text-blue-600 bg-blue-100 px-2 py-1 rounded-md">
                 {employee?.name}
               </span>
             </div>
             <div className="flex items-center gap-2 sm:col-span-2">
               <Building2 className="h-4 w-4 text-blue-600" />
-              <span className="text-sm font-medium text-blue-700">Phòng ban:</span>
+              <span className="text-sm font-medium text-blue-700">部門:</span>
               <span className="text-sm text-blue-600 bg-blue-100 px-2 py-1 rounded-md">
                 {employee?.department}
               </span>
@@ -234,32 +224,32 @@ const LeaveRequestForm: React.FC = () => {
           <div className="space-y-3">
             <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
               <Calendar className="h-4 w-4 text-green-600" />
-              Loại nghỉ phép <span className="text-red-500">*</span>
+              請假類型 <span className="text-red-500">*</span>
             </label>
             <Select
               value={leaveType}
               onValueChange={(value: 'full_day' | 'half_day' | 'hourly') => setValue('leaveType', value)}
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Chọn loại nghỉ phép" />
+                <SelectValue placeholder="選擇請假類型" />  
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="full_day">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                    Nghỉ cả ngày
+                    全薪假  
                   </div>
                 </SelectItem>
                 <SelectItem value="half_day">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-                    Nghỉ nửa ngày
+                    上午
                   </div>
                 </SelectItem>
                 <SelectItem value="hourly">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                    Nghỉ theo giờ
+                    下午
                   </div>
                 </SelectItem>
               </SelectContent>
@@ -270,14 +260,14 @@ const LeaveRequestForm: React.FC = () => {
           {leaveType === 'half_day' && (
             <div className="space-y-3">
               <label className="text-sm font-medium text-gray-700">
-                Buổi nghỉ <span className="text-red-500">*</span>
+                請假時段 <span className="text-red-500">*</span>
               </label>
               <Select
                 value={watch('halfDayType')}
                 onValueChange={(value: 'morning' | 'afternoon' | 'evening') => setValue('halfDayType', value)}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Chọn buổi nghỉ" />
+                  <SelectValue placeholder="選擇請假時段" />
                 </SelectTrigger>
                 <SelectContent>
                   {halfDayOptions.map((option) => (
@@ -296,7 +286,7 @@ const LeaveRequestForm: React.FC = () => {
               <div className="space-y-3">
                 <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
                   <Clock className="h-4 w-4 text-blue-600" />
-                  Giờ bắt đầu <span className="text-red-500">*</span>
+                  開始時間 <span className="text-red-500">*</span>
                 </label>
                 <Input
                   type="time"
@@ -304,13 +294,13 @@ const LeaveRequestForm: React.FC = () => {
                   className="w-full"
                 />
                 {errors.startTime && (
-                  <p className="text-sm text-red-600">Vui lòng chọn giờ bắt đầu</p>
+                  <p className="text-sm text-red-600">請選擇開始時間</p>
                 )}
               </div>
               <div className="space-y-3">
                 <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
                   <Clock className="h-4 w-4 text-blue-600" />
-                  Giờ kết thúc <span className="text-red-500">*</span>
+                  結束時間 <span className="text-red-500">*</span>
                 </label>
                 <Input
                   type="time"
@@ -318,7 +308,7 @@ const LeaveRequestForm: React.FC = () => {
                   className="w-full"
                 />
                 {errors.endTime && (
-                  <p className="text-sm text-red-600">Vui lòng chọn giờ kết thúc</p>
+                  <p className="text-sm text-red-600">請選擇結束時間</p>
                 )}
               </div>
             </div>
@@ -329,7 +319,7 @@ const LeaveRequestForm: React.FC = () => {
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
                 <CalendarDays className="h-4 w-4 text-green-600" />
-                Chọn ngày nghỉ <span className="text-red-500">*</span>
+                選擇請假日期 <span className="text-red-500">*</span>
               </label>
               <Button
                 type="button"
@@ -338,7 +328,7 @@ const LeaveRequestForm: React.FC = () => {
                 onClick={() => setShowMiniCalendar(!showMiniCalendar)}
                 className="text-xs"
               >
-                {showMiniCalendar ? 'Ẩn lịch' : 'Hiện lịch'}
+                {showMiniCalendar ? '隱藏日曆' : '顯示日曆'}
               </Button>
             </div>
             
@@ -346,51 +336,36 @@ const LeaveRequestForm: React.FC = () => {
             {showMiniCalendar && (
               <div className="flex justify-center">
                 <MiniCalendar
-                  selectedStartDate={startDate ? new Date(startDate) : null}
-                  selectedEndDate={endDate ? new Date(endDate) : null}
+                  selectedStartDate={leaveDate ? new Date(leaveDate) : null}
+                  selectedEndDate={leaveDate ? new Date(leaveDate) : null}
                   onDateSelect={handleSingleDateSelect}
-                  onDateRangeSelect={handleDateRangeSelect}
                   onClearDates={handleClearDates}
                   className="w-full max-w-sm"
                 />
               </div>
             )}
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-xs text-gray-600">Từ ngày</label>
-                <Input
-                  type="date"
-                  {...register('startDate', { required: true })}
-                  className="w-full"
-                  min={new Date().toISOString().split('T')[0]}
-                />
-                {errors.startDate && (
-                  <p className="text-sm text-red-600">Vui lòng chọn ngày bắt đầu</p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs text-gray-600">Đến ngày</label>
-                <Input
-                  type="date"
-                  {...register('endDate', { required: true })}
-                  className="w-full"
-                  min={startDate}
-                />
-                {errors.endDate && (
-                  <p className="text-sm text-red-600">Vui lòng chọn ngày kết thúc</p>
-                )}
-              </div>
+            <div className="space-y-2">
+              <label className="text-xs text-gray-600">請假日期 *</label>
+              <Input
+                type="date"
+                {...register('leaveDate', { required: true })}
+                className="w-full"
+                min={new Date().toISOString().split('T')[0]}
+              />
+              {errors.leaveDate && (
+                <p className="text-sm text-red-600">請選擇請假日期</p>
+              )}
             </div>
 
-            {/* Selected Dates Preview */}
+            {/* Selected Date Preview */}
             {selectedDates.length > 0 && (
               <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <MapPin className="h-4 w-4 text-green-600" />
                     <span className="text-sm font-medium text-green-800">
-                      Đã chọn {selectedDates.length} ngày nghỉ:
+                      已選擇日期:
                     </span>
                   </div>
                   <Button
@@ -401,7 +376,7 @@ const LeaveRequestForm: React.FC = () => {
                     className="h-6 px-2 text-red-600 border-red-300 hover:bg-red-50 hover:border-red-400"
                   >
                     <X className="h-3 w-3 mr-1" />
-                    Xóa
+                    刪除
                   </Button>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -420,10 +395,10 @@ const LeaveRequestForm: React.FC = () => {
                   ))}
                 </div>
                 <div className="mt-3 text-xs text-green-600">
-                  <span className="font-medium">Tổng cộng:</span> {selectedDates.length} ngày
+                  <span className="font-medium">總共:</span> 1 天
                   {selectedDates.filter(isWeekend).length > 0 && (
                     <span className="ml-2">
-                      (bao gồm {selectedDates.filter(isWeekend).length} ngày cuối tuần)
+                      (週末)
                     </span>
                   )}
                 </div>
@@ -433,10 +408,10 @@ const LeaveRequestForm: React.FC = () => {
 
           {/* Reason */}
           <div className="space-y-3">
-            <label className="text-sm font-medium text-gray-700">Lý do nghỉ phép (tùy chọn)</label>
+            <label className="text-sm font-medium text-gray-700">請假原因 (可選)</label>
             <Textarea
               {...register('reason')}
-              placeholder="Nhập lý do nghỉ phép..."
+              placeholder="請輸入請假原因..."
               rows={3}
               className="w-full resize-none"
             />
@@ -446,7 +421,7 @@ const LeaveRequestForm: React.FC = () => {
           <div className="space-y-3">
             <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
               <Upload className="h-4 w-4 text-purple-600" />
-              Tài liệu đính kèm (tùy chọn)
+              附件 (可選)
             </label>
             
             {/* File size warning */}
@@ -454,7 +429,7 @@ const LeaveRequestForm: React.FC = () => {
               <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
                 <AlertCircle className="h-4 w-4 text-red-600" />
                 <span className="text-sm text-red-700">
-                  Tổng dung lượng file quá lớn ({(totalFileSize / 1024 / 1024).toFixed(1)}MB / 50MB)
+                  總文件大小超過限制 ({(totalFileSize / 1024 / 1024).toFixed(1)}MB / 50MB)
                 </span>
               </div>
             )}
@@ -474,13 +449,13 @@ const LeaveRequestForm: React.FC = () => {
               >
                 <Upload className="h-8 w-8 text-gray-400" />
                 <span className="text-sm text-gray-600">
-                  Click để chọn file hoặc kéo thả vào đây
+                  點擊選擇文件或拖放至此處
                 </span>
                 <span className="text-xs text-gray-500">
-                  Hỗ trợ: JPG, PNG, PDF, DOC, DOCX (tối đa 10MB/file, tổng 50MB)
+                  支持: JPG, PNG, PDF, DOC, DOCX (最大 10MB/文件, 總共 50MB)
                 </span>
                 <span className="text-xs text-gray-400">
-                  Đã sử dụng: {(totalFileSize / 1024 / 1024).toFixed(1)}MB
+                  已使用: {(totalFileSize / 1024 / 1024).toFixed(1)}MB
                 </span>
               </label>
             </div>
@@ -488,7 +463,7 @@ const LeaveRequestForm: React.FC = () => {
             {/* File List */}
             {attachments.length > 0 && (
               <div className="space-y-2">
-                <h4 className="text-sm font-medium text-gray-700">Files đã chọn ({attachments.length}):</h4>
+                <h4 className="text-sm font-medium text-gray-700">已選擇文件 ({attachments.length}):</h4>
                 {attachments.map((file, index) => (
                   <div
                     key={index}
@@ -525,12 +500,12 @@ const LeaveRequestForm: React.FC = () => {
             {isLoading ? (
               <div className="flex items-center gap-2">
                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                Đang gửi đơn...
+                正在提交...
               </div>
             ) : (
               <div className="flex items-center gap-2">
                 <CalendarDays className="h-5 w-5" />
-                Gửi đơn xin nghỉ phép
+                提交請假申請
               </div>
             )}
           </Button>

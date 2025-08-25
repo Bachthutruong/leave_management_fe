@@ -54,20 +54,20 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onSave, onCancel,
     setIsLoading(true);
     try {
       await onSave(data);
-      toast.success(mode === 'create' ? 'Thêm nhân viên thành công!' : 'Cập nhật nhân viên thành công!');
+      toast.success(mode === 'create' ? '新增員工成功！' : '更新員工成功！');
     } catch (error) {
-      toast.error('Có lỗi xảy ra!');
+      toast.error('發生錯誤！');
     } finally {
       setIsLoading(false);
     }
   };
 
   const departments = [
-    'Kế toán', 'Nhân sự', 'Kinh doanh', 'Marketing', 'Công nghệ', 'Vận hành', 'Chăm sóc khách hàng'
+    '會計', '人資', '業務', '行銷', '技術', '營運', '客服'
   ];
 
   const positions = [
-    'Nhân viên', 'Trưởng nhóm', 'Quản lý', 'Giám đốc', 'Thực tập sinh'
+    '員工', '組長', '經理', '總監', '實習生'
   ];
 
   return (
@@ -75,10 +75,10 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onSave, onCancel,
       <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-lg">
         <CardTitle className="flex items-center space-x-2">
           {mode === 'create' ? <Plus className="h-5 w-5" /> : <User className="h-5 w-5" />}
-          <span>{mode === 'create' ? 'Thêm Nhân viên mới' : 'Chỉnh sửa Nhân viên'}</span>
+          <span>{mode === 'create' ? '新增員工' : '編輯員工'}</span>
         </CardTitle>
         <CardDescription className="text-blue-100">
-          {mode === 'create' ? 'Điền thông tin nhân viên mới' : 'Cập nhật thông tin nhân viên'}
+          {mode === 'create' ? '填寫新員工資訊' : '更新員工資訊'}
         </CardDescription>
       </CardHeader>
       <CardContent className="p-6">
@@ -88,10 +88,10 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onSave, onCancel,
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
                 <User className="h-4 w-4 text-blue-600" />
-                <span>Mã nhân viên *</span>
+                <span>員工編號 *</span>
               </label>
               <Input
-                {...register('employeeId', { required: 'Mã nhân viên là bắt buộc' })}
+                {...register('employeeId', { required: '員工編號為必填項' })}
                 placeholder="NV001"
                 className="border-blue-300 focus:border-blue-500 focus:ring-blue-500"
               />
@@ -103,11 +103,11 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onSave, onCancel,
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
                 <User className="h-4 w-4 text-blue-600" />
-                <span>Họ và tên *</span>
+                <span>姓名 *</span>
               </label>
               <Input
-                {...register('name', { required: 'Họ tên là bắt buộc' })}
-                placeholder="Nguyễn Văn A"
+                {...register('name', { required: '姓名為必填項' })}
+                placeholder="張三"
                 className="border-blue-300 focus:border-blue-500 focus:ring-blue-500"
               />
               {errors.name && (
@@ -121,11 +121,11 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onSave, onCancel,
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
                 <Building2 className="h-4 w-4 text-green-600" />
-                <span>Phòng ban *</span>
+                <span>部門 *</span>
               </label>
               <Select value={watch('department')} onValueChange={(value) => setValue('department', value)}>
                 <SelectTrigger className="border-green-300 focus:border-green-500 focus:ring-green-500">
-                  <SelectValue placeholder="Chọn phòng ban" />
+                  <SelectValue placeholder="選擇部門" />
                 </SelectTrigger>
                 <SelectContent>
                   {departments.map((dept) => (
@@ -141,11 +141,11 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onSave, onCancel,
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
                 <User className="h-4 w-4 text-purple-600" />
-                <span>Chức vụ *</span>
+                <span>職位 *</span>
               </label>
               <Select value={watch('position')} onValueChange={(value) => setValue('position', value)}>
                 <SelectTrigger className="border-purple-300 focus:border-purple-500 focus:ring-purple-500">
-                  <SelectValue placeholder="Chọn chức vụ" />
+                  <SelectValue placeholder="選擇職位" />
                 </SelectTrigger>
                 <SelectContent>
                   {positions.map((pos) => (
@@ -168,10 +168,10 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onSave, onCancel,
               </label>
               <Input
                 {...register('email', { 
-                  required: 'Email là bắt buộc',
+                  required: '電子郵件為必填項',
                   pattern: {
                     value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                    message: 'Email không hợp lệ'
+                    message: '電子郵件格式無效'
                   }
                 })}
                 type="email"
@@ -186,14 +186,14 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onSave, onCancel,
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
                 <Phone className="h-4 w-4 text-teal-600" />
-                <span>Số điện thoại *</span>
+                <span>電話號碼 *</span>
               </label>
               <Input
                 {...register('phone', { 
-                  required: 'Số điện thoại là bắt buộc',
+                  required: '電話號碼為必填項',
                   pattern: {
                     value: /^[0-9+\-\s()]+$/,
-                    message: 'Số điện thoại không hợp lệ'
+                    message: '電話號碼格式無效'
                   }
                 })}
                 placeholder="0123456789"
@@ -210,10 +210,10 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onSave, onCancel,
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
                 <Calendar className="h-4 w-4 text-indigo-600" />
-                <span>Ngày vào làm *</span>
+                <span>入職日期 *</span> 
               </label>
               <Input
-                {...register('joinDate', { required: 'Ngày vào làm là bắt buộc' })}
+                {...register('joinDate', { required: '入職日期為必填項' })}
                 type="date"
                 className="border-indigo-300 focus:border-indigo-500 focus:ring-indigo-500"
               />
@@ -225,15 +225,15 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onSave, onCancel,
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
                 <div className={`w-3 h-3 rounded-full ${status === 'active' ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                <span>Trạng thái *</span>
+                <span>狀態 *</span> 
               </label>
               <Select value={status} onValueChange={(value: 'active' | 'inactive') => setValue('status', value)}>
                 <SelectTrigger className="border-gray-300 focus:border-gray-500 focus:ring-gray-500">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="active">Đang làm việc</SelectItem>
-                  <SelectItem value="inactive">Đã nghỉ việc</SelectItem>
+                  <SelectItem value="active">在職</SelectItem>
+                  <SelectItem value="inactive">離職</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -249,12 +249,12 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onSave, onCancel,
               {isLoading ? (
                 <div className="flex items-center space-x-2">
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                  <span>Đang xử lý...</span>
+                  <span>正在處理...</span>
                 </div>
               ) : (
                 <div className="flex items-center space-x-2">
                   <Save className="h-4 w-4" />
-                  <span>{mode === 'create' ? 'Thêm nhân viên' : 'Cập nhật'}</span>
+                  <span>{mode === 'create' ? '新增員工' : '更新'}</span>
                 </div>
               )}
             </Button>
@@ -267,7 +267,7 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onSave, onCancel,
             >
               <div className="flex items-center space-x-2">
                 <X className="h-4 w-4" />
-                <span>Hủy</span>
+                <span>取消</span>
               </div>
             </Button>
           </div>

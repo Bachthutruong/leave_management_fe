@@ -29,8 +29,8 @@ const PromptDialog: React.FC<PromptDialogProps> = ({
   defaultValue = '',
   onConfirm,
   onCancel,
-  confirmText = 'Xác nhận',
-  cancelText = 'Hủy',
+  confirmText = '確認',
+  cancelText = '取消',
   multiline = false,
   required = false
 }) => {
@@ -98,7 +98,7 @@ const PromptDialog: React.FC<PromptDialogProps> = ({
             />
           )}
           {required && !isValid && (
-            <p className="text-sm text-red-600 mt-1">Trường này là bắt buộc</p>
+            <p className="text-sm text-red-600 mt-1">此欄位為必填項</p>
           )}
         </div>
 

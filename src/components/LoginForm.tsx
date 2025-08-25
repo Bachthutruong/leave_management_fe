@@ -38,16 +38,16 @@ const LoginForm: React.FC = () => {
           password: data.password!,
         });
         login(response.token, response.admin!, 'admin');
-        toast.success('Đăng nhập thành công!');
+        toast.success('登入成功！');
       } else {
         response = await authAPI.employeeAuth(data.employeeId!);
         login(response.token, response.employee!, 'employee');
-        toast.success('Xác thực thành công!');
+        toast.success('驗證成功！');
       }
       
       reset();
     } catch (error: any) {
-      const message = error.response?.data?.message || 'Đăng nhập thất bại!';
+      const message = error.response?.data?.message || '登入失敗！';
       toast.error(message);
     } finally {
       setIsLoading(false);
@@ -61,20 +61,20 @@ const LoginForm: React.FC = () => {
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm">
             <Building2 className="h-8 w-8 text-white" />
           </div>
-          <CardTitle className="text-3xl font-bold">Hệ thống Quản lý Nghỉ phép</CardTitle>
+          <CardTitle className="text-3xl font-bold">請假管理系統</CardTitle>
           <CardDescription className="text-blue-100">
-            Vui lòng chọn loại đăng nhập và nhập thông tin
+            請選擇登入類型並輸入資訊
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6">
           <div className="mb-6">
             <Select value={loginType} onValueChange={(value: 'admin' | 'employee') => setLoginType(value)}>
               <SelectTrigger className="border-2 border-gray-200 focus:border-blue-500 focus:ring-blue-500">
-                <SelectValue placeholder="Chọn loại đăng nhập" />
+                <SelectValue placeholder="選擇登入類型" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="employee">👤 Nhân viên</SelectItem>
-                <SelectItem value="admin">🔧 Quản trị viên</SelectItem>
+                <SelectItem value="employee">👤 員工</SelectItem>
+                <SelectItem value="admin">🔧 管理員</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -86,8 +86,8 @@ const LoginForm: React.FC = () => {
                   <div className="relative">
                     <User className="absolute left-3 top-3 h-4 w-4 text-blue-600" />
                     <Input
-                      {...register('username', { required: 'Tên đăng nhập là bắt buộc' })}
-                      placeholder="Tên đăng nhập"
+                      {...register('username', { required: '用戶名為必填項' })}
+                      placeholder="用戶名"
                       className="pl-10 border-2 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                     />
                   </div>
@@ -100,9 +100,9 @@ const LoginForm: React.FC = () => {
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-blue-600" />
                     <Input
-                      {...register('password', { required: 'Mật khẩu là bắt buộc' })}
+                      {...register('password', { required: '密碼為必填項' })}
                       type="password"
-                      placeholder="Mật khẩu"
+                      placeholder="密碼"
                       className="pl-10 border-2 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                     />
                   </div>
@@ -116,8 +116,8 @@ const LoginForm: React.FC = () => {
                 <div className="relative">
                   <User className="absolute left-3 top-3 h-4 w-4 text-blue-600" />
                   <Input
-                    {...register('employeeId', { required: 'Mã nhân viên là bắt buộc' })}
-                    placeholder="Nhập mã nhân viên"
+                    {...register('employeeId', { required: '員工編號為必填項' })}
+                    placeholder="輸入員工編號"
                     className="pl-10 border-2 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                   />
                 </div>
@@ -135,12 +135,12 @@ const LoginForm: React.FC = () => {
               {isLoading ? (
                 <div className="flex items-center space-x-2">
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                  <span>Đang xử lý...</span>
+                  <span>處理中...</span>
                 </div>
               ) : (
                 <div className="flex items-center space-x-2">
                   <LogIn className="h-4 w-4" />
-                  <span>{loginType === 'admin' ? 'Đăng nhập' : 'Xác thực'}</span>
+                  <span>{loginType === 'admin' ? '登入' : '驗證'}</span>
                 </div>
               )}
             </Button>
@@ -149,8 +149,8 @@ const LoginForm: React.FC = () => {
           <div className="mt-6 text-center text-sm text-gray-600 bg-gray-50 p-4 rounded-lg">
             <p>
               {loginType === 'admin' 
-                ? '🔧 Đăng nhập với tài khoản quản trị viên'
-                : '👤 Nhập mã nhân viên để xác thực'
+                ? '🔧 使用管理員帳號登入'
+                : '👤 輸入員工編號進行驗證'
               }
             </p>
           </div>

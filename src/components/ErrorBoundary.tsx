@@ -44,9 +44,9 @@ class ErrorBoundary extends Component<Props, State> {
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
               <AlertTriangle className="h-6 w-6 text-red-600" />
             </div>
-            <CardTitle className="text-red-800">Đã xảy ra lỗi</CardTitle>
+            <CardTitle className="text-red-800">已發生錯誤</CardTitle>
             <CardDescription className="text-red-600">
-              Có vấn đề xảy ra khi tải dữ liệu
+              載入資料時發生問題
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center">
@@ -55,7 +55,7 @@ class ErrorBoundary extends Component<Props, State> {
               className="bg-red-600 hover:bg-red-700 text-white"
             >
               <RefreshCw className="h-4 w-4 mr-2" />
-              Thử lại
+              重試
             </Button>
           </CardContent>
         </Card>

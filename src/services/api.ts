@@ -1,11 +1,11 @@
 import axios from 'axios';
 import { useAuthStore } from '@/store/authStore';
-import { Employee, LeaveRequest, AuthResponse, LoginCredentials, LeaveStatistics, CalendarEvent, HalfDayOption } from '@/types';
+import { Employee, LeaveRequest, AuthResponse, LoginCredentials, LeaveStatistics, CalendarEvent, HalfDayOption, Department, Position } from '@/types';
 
 // Create axios instance
 const api = axios.create({
-  // baseURL: 'http://localhost:5002/api',
-  baseURL: 'https://leave-management-be-8rhi.onrender.com/api',
+  baseURL: 'http://localhost:5002/api',
+  // baseURL: 'https://leave-management-be-8rhi.onrender.com/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -173,6 +173,70 @@ export const halfDayOptionsAPI = {
   
   delete: async (id: string): Promise<void> => {
     await api.delete(`/half-day-options/${id}`);
+  },
+};
+
+// Department API
+export const departmentAPI = {
+  getAll: async (): Promise<Department[]> => {
+    const response = await api.get('/departments');
+    return response.data;
+  },
+  
+  getActive: async (): Promise<Department[]> => {
+    const response = await api.get('/departments/active');
+    return response.data;
+  },
+  
+  getById: async (id: string): Promise<Department> => {
+    const response = await api.get(`/departments/${id}`);
+    return response.data;
+  },
+  
+  create: async (department: { name: string; code: string; description?: string }): Promise<Department> => {
+    const response = await api.post('/departments', department);
+    return response.data;
+  },
+  
+  update: async (id: string, department: Partial<Department>): Promise<Department> => {
+    const response = await api.put(`/departments/${id}`, department);
+    return response.data;
+  },
+  
+  delete: async (id: string): Promise<void> => {
+    await api.delete(`/departments/${id}`);
+  },
+};
+
+// Position API
+export const positionAPI = {
+  getAll: async (): Promise<Position[]> => {
+    const response = await api.get('/positions');
+    return response.data;
+  },
+  
+  getActive: async (): Promise<Position[]> => {
+    const response = await api.get('/positions/active');
+    return response.data;
+  },
+  
+  getById: async (id: string): Promise<Position> => {
+    const response = await api.get(`/positions/${id}`);
+    return response.data;
+  },
+  
+  create: async (position: { name: string; code: string; description?: string }): Promise<Position> => {
+    const response = await api.post('/positions', position);
+    return response.data;
+  },
+  
+  update: async (id: string, position: Partial<Position>): Promise<Position> => {
+    const response = await api.put(`/positions/${id}`, position);
+    return response.data;
+  },
+  
+  delete: async (id: string): Promise<void> => {
+    await api.delete(`/positions/${id}`);
   },
 };
 

@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Employee } from '@/types';
+import { Employee, Department, Position } from '@/types';
+import { departmentAPI, positionAPI } from '@/services/api';
 import { User, Building2, Mail, Phone, Calendar, Save, X, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -28,6 +29,9 @@ interface EmployeeFormProps {
 
 const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onSave, onCancel, mode }) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [positions, setPositions] = useState<Position[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
 
   const {
     register,
@@ -50,6 +54,26 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onSave, onCancel,
 
   const status = watch('status');
 
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoadingData(true);
+        const [deptData, posData] = await Promise.all([
+          departmentAPI.getActive(),
+          positionAPI.getActive()
+        ]);
+        setDepartments(deptData);
+        setPositions(posData);
+      } catch (error) {
+        toast.error('載入部門和職位資料失敗');
+      } finally {
+        setLoadingData(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
   const onSubmit = async (data: EmployeeFormData) => {
     setIsLoading(true);
     try {
@@ -62,13 +86,20 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onSave, onCancel,
     }
   };
 
-  const departments = [
-    '會計', '人資', '業務', '行銷', '技術', '營運', '客服'
-  ];
-
-  const positions = [
-    '員工', '組長', '經理', '總監', '實習生'
-  ];
+  if (loadingData) {
+    return (
+      <Card className="w-full max-w-2xl mx-auto bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-center py-8">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-2 text-gray-600">載入部門和職位資料中...</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="w-full max-w-2xl mx-auto bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200">
@@ -129,7 +160,7 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onSave, onCancel,
                 </SelectTrigger>
                 <SelectContent>
                   {departments.map((dept) => (
-                    <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                    <SelectItem key={dept._id} value={dept.name}>{dept.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -149,7 +180,7 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onSave, onCancel,
                 </SelectTrigger>
                 <SelectContent>
                   {positions.map((pos) => (
-                    <SelectItem key={pos} value={pos}>{pos}</SelectItem>
+                    <SelectItem key={pos._id} value={pos.name}>{pos.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

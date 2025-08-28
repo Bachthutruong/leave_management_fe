@@ -6,8 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useAuthStore } from '@/store/authStore';
-import { employeeAPI, leaveRequestAPI, halfDayOptionsAPI } from '@/services/api';
-import { Employee, LeaveRequest, HalfDayOption } from '@/types';
+import { employeeAPI, leaveRequestAPI, halfDayOptionsAPI, departmentAPI } from '@/services/api';
+import { Employee, LeaveRequest, HalfDayOption, Department } from '@/types';
 import AttachmentViewer from '@/components/AttachmentViewer';
 // Simple chart components - will implement with recharts later
 import { 
@@ -46,10 +46,15 @@ import EmployeeForm from '@/components/EmployeeForm';
 import AdminLeaveForm, { AdminLeaveFormRef } from '@/components/AdminLeaveForm';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import PromptDialog from '@/components/PromptDialog';
+// import DepartmentForm from '@/components/DepartmentForm';
+// import PositionForm from '@/components/PositionForm';
+import DepartmentManagement from '@/pages/DepartmentManagement';
+import PositionManagement from '@/pages/PositionManagement';
 
 // Employee Management Component
 const EmployeeManagement: React.FC = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
@@ -66,6 +71,7 @@ const EmployeeManagement: React.FC = () => {
 
   useEffect(() => {
     loadEmployees();
+    loadDepartments();
   }, []);
 
   const loadEmployees = async () => {
@@ -76,6 +82,15 @@ const EmployeeManagement: React.FC = () => {
       toast.error('無法載入員工清單');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadDepartments = async () => {
+    try {
+      const data = await departmentAPI.getActive();
+      setDepartments(data);
+    } catch (error) {
+      toast.error('無法載入部門清單');
     }
   };
 
@@ -141,7 +156,7 @@ const EmployeeManagement: React.FC = () => {
     setCurrentPage(1);
   }, [searchTerm, filterDepartment]);
 
-  const departments = [...new Set(employees.map(emp => emp.department))];
+  // const departmentNames = [...new Set(employees.map(emp => emp.department))];
 
   if (isLoading) {
     return (
@@ -220,7 +235,7 @@ const EmployeeManagement: React.FC = () => {
           <SelectContent>
             <SelectItem value="all">所有部門</SelectItem>
             {departments.map((dept) => (
-              <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+              <SelectItem key={dept._id} value={dept.name}>{dept.name}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -2675,7 +2690,7 @@ const AdminDashboard: React.FC = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs defaultValue="leaves" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 h-auto p-1 bg-gray-100 rounded-xl gap-1">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-6 h-auto p-1 bg-gray-100 rounded-xl gap-1">
             <TabsTrigger 
               value="leaves" 
               className="flex flex-col items-center justify-center space-y-1 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-green-600 rounded-lg transition-all duration-200 text-xs sm:text-sm py-3"
@@ -2698,6 +2713,20 @@ const AdminDashboard: React.FC = () => {
               <span className="text-xs">員工</span>
             </TabsTrigger>
             <TabsTrigger 
+              value="departments" 
+              className="flex flex-col items-center justify-center space-y-1 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-emerald-600 rounded-lg transition-all duration-200 text-xs sm:text-sm py-3"
+            >
+              <Building2 className="h-4 w-4 sm:h-5 sm:w-5" />
+              <span className="text-xs">部門</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="positions" 
+              className="flex flex-col items-center justify-center space-y-1 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-orange-600 rounded-lg transition-all duration-200 text-xs sm:text-sm py-3"
+            >
+              <User className="h-4 w-4 sm:h-5 sm:w-5" />
+              <span className="text-xs">職位</span>
+            </TabsTrigger>
+            <TabsTrigger 
               value="settings" 
               className="flex flex-col items-center justify-center space-y-1 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-indigo-600 rounded-lg transition-all duration-200 text-xs sm:text-sm py-3"
             >
@@ -2716,6 +2745,14 @@ const AdminDashboard: React.FC = () => {
 
           <TabsContent value="employees">
             <EmployeeManagement />
+          </TabsContent>
+
+          <TabsContent value="departments">
+            <DepartmentManagement />
+          </TabsContent>
+
+          <TabsContent value="positions">
+            <PositionManagement />
           </TabsContent>
 
           <TabsContent value="settings">

@@ -299,8 +299,8 @@ const LeaveCalendar: React.FC<LeaveCalendarProps> = ({
                         {/* Compact event display */}
                         <div className="truncate leading-tight">
                           {isMobileView 
-                            ? `${event.employeeName.split(' ').slice(-1)[0]} ${event.department} ${getLeaveTypeText(event.leaveType, event.halfDayType).substring(0, 3)}`
-                            : `${event.employeeName} ${event.department} ${getLeaveTypeText(event.leaveType, event.halfDayType).substring(0, 4)}`
+                            ? `${event.employeeName.split(' ').slice(-1)[0]}`
+                            : `${event.employeeName}`
                           }
                         </div>
                       </div>
@@ -336,7 +336,7 @@ const LeaveCalendar: React.FC<LeaveCalendarProps> = ({
         <div className="mt-4 sm:mt-6 p-4 sm:p-6 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl border border-gray-200">
           <h4 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-gray-800 flex items-center gap-2">
             <CalendarIcon className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
-            Chú thích
+            Legend
           </h4>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
             <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-white rounded-lg border border-gray-200 shadow-sm">

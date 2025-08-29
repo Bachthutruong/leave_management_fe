@@ -12,7 +12,7 @@ import { Building2, User, Lock, LogIn } from 'lucide-react';
 interface LoginFormData {
   username?: string;
   password?: string;
-  employeeId?: string;
+  phone?: string;
 }
 
 const LoginForm: React.FC = () => {
@@ -40,7 +40,7 @@ const LoginForm: React.FC = () => {
         login(response.token, response.admin!, 'admin');
         toast.success('登入成功！');
       } else {
-        response = await authAPI.employeeAuth(data.employeeId!);
+        response = await authAPI.employeeAuth(data.phone!);
         login(response.token, response.employee!, 'employee');
         toast.success('驗證成功！');
       }
@@ -61,7 +61,7 @@ const LoginForm: React.FC = () => {
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm">
             <Building2 className="h-8 w-8 text-white" />
           </div>
-          <CardTitle className="text-3xl font-bold">請假管理系統</CardTitle>
+          <CardTitle className="text-3xl font-bold">排休管理系統</CardTitle>
           <CardDescription className="text-blue-100">
             請選擇登入類型並輸入資訊
           </CardDescription>
@@ -116,13 +116,13 @@ const LoginForm: React.FC = () => {
                 <div className="relative">
                   <User className="absolute left-3 top-3 h-4 w-4 text-blue-600" />
                   <Input
-                    {...register('employeeId', { required: '員工編號為必填項' })}
-                    placeholder="輸入員工編號"
+                    {...register('phone', { required: '電話號碼為必填項' })}
+                    placeholder="輸入電話號碼"
                     className="pl-10 border-2 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                   />
                 </div>
-                {errors.employeeId && (
-                  <p className="text-sm text-red-500">{errors.employeeId.message}</p>
+                {errors.phone && (
+                  <p className="text-sm text-red-500">{errors.phone.message}</p>
                 )}
               </div>
             )}
@@ -150,7 +150,7 @@ const LoginForm: React.FC = () => {
             <p>
               {loginType === 'admin' 
                 ? '🔧 使用管理員帳號登入'
-                : '👤 輸入員工編號進行驗證'
+                : '👤 輸入電話號碼進行驗證'
               }
             </p>
           </div>

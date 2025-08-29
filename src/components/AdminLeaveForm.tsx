@@ -5,13 +5,13 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Employee, LeaveRequest, HalfDayOption } from '@/types';
-import { Calendar, User, Building2, Clock, FileText, Save, X, Plus, Paperclip, CalendarDays, MapPin } from 'lucide-react';
+import { Calendar, User, Building2, Clock, FileText, Save, X, Plus, Paperclip, MapPin } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AttachmentViewer from '@/components/AttachmentViewer';
 import MiniCalendar from '@/components/MiniCalendar';
 
 interface AdminLeaveFormData {
-  employeeId: string;
+  phone: string;
   leaveType: 'full_day' | 'half_day' | 'hourly';
   halfDayType?: 'morning' | 'afternoon' | 'evening';
   startTime?: string;
@@ -47,7 +47,7 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
   const [halfDayOptions, setHalfDayOptions] = useState<HalfDayOption[]>([]);
   const [isInitialized, setIsInitialized] = useState(false); // Flag to prevent overwriting
   const [formData, setFormData] = useState<AdminLeaveFormData>({
-    employeeId: '',
+    phone: '',
     leaveType: 'full_day',
     halfDayType: undefined,
     startTime: '',
@@ -71,22 +71,22 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
       console.log('Initial form data population:', leaveRequest);
       console.log('Available employees:', employees);
       
-      // Find employee by employeeId (mã nhân viên) first
+      // Find employee by phone (mã nhân viên) first
       let employeeId = '';
-      if (leaveRequest.employeeId) {
-        console.log('Looking for employee with employeeId:', leaveRequest.employeeId);
-        console.log('Available employees employeeIds:', employees.map(emp => emp.employeeId));
+      if (leaveRequest.phone) {
+        console.log('Looking for employee with phone:', leaveRequest.phone);
+        console.log('Available employees phones:', employees.map(emp => emp.phone));
         
-        const foundEmployee = employees.find(emp => emp.employeeId === leaveRequest.employeeId);
+        const foundEmployee = employees.find(emp => emp.phone === leaveRequest.phone);
         if (foundEmployee) {
           employeeId = foundEmployee._id; // Use MongoDB _id for form
-          console.log('Found employee by employeeId:', foundEmployee);
+          console.log('Found employee by phone:', foundEmployee);
         } else {
-          console.log('No employee found with employeeId:', leaveRequest.employeeId);
+          console.log('No employee found with phone:', leaveRequest.phone);
         }
       }
       
-      // If not found by employeeId, try by name
+      // If not found by phone, try by name
       if (!employeeId && leaveRequest.employeeName) {
         const foundEmployee = employees.find(emp => emp.name === leaveRequest.employeeName);
         if (foundEmployee) {
@@ -107,7 +107,7 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
       }
       
       const formDataToSet = {
-        employeeId: employeeId || '',
+        phone: employeeId || '',
         leaveType: leaveRequest.leaveType || 'full_day',
         halfDayType: leaveRequest.halfDayType,
         startTime: leaveRequest.startTime || '',
@@ -117,9 +117,9 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
         status: leaveRequest.status || 'pending',
       };
       
-      // Ensure employeeId is not empty
-      if (!formDataToSet.employeeId) {
-        console.error('ERROR: employeeId is empty! This should not happen.');
+      // Ensure phone is not empty
+      if (!formDataToSet.phone) {
+        console.error('ERROR: phone is empty! This should not happen.');
         console.error('leaveRequest:', leaveRequest);
         console.error('employees:', employees);
         console.error('formDataToSet:', formDataToSet);
@@ -187,16 +187,16 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
       if (Object.keys(updates).length > 0) {
         console.log('Applying updates to form:', updates);
         setFormData(prev => {
-          // Never overwrite employeeId - it should always remain the same
+          // Never overwrite phone - it should always remain the same
           const newFormData = {
             ...prev,
             ...updates
           };
           
-          // Ensure employeeId is preserved
-          if (prev.employeeId && !updates.employeeId) {
-            newFormData.employeeId = prev.employeeId;
-            console.log('Preserving employeeId:', prev.employeeId);
+          // Ensure phone is preserved
+          if (prev.phone && !updates.phone) {
+            newFormData.phone = prev.phone;
+            console.log('Preserving phone:', prev.phone);
           }
           
           return newFormData;
@@ -235,24 +235,24 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
     if (mode === 'edit' && leaveRequest) {
       console.log('Force refreshing form with latest data...');
       
-      // Find employee by employeeId
+      // Find employee by phone
       let employeeId = '';
-      if (leaveRequest.employeeId) {
-        const foundEmployee = employees.find(emp => emp.employeeId === leaveRequest.employeeId);
+      if (leaveRequest.phone) {
+        const foundEmployee = employees.find(emp => emp.phone === leaveRequest.phone);
         if (foundEmployee) {
           employeeId = foundEmployee._id;
           console.log('Found employee for force refresh:', foundEmployee);
         }
       }
       
-      // Preserve current employeeId if available
-      if (!employeeId && formData.employeeId) {
-        employeeId = formData.employeeId;
-        console.log('Preserving current employeeId:', employeeId);
+      // Preserve current phone if available
+      if (!employeeId && formData.phone) {
+        employeeId = formData.phone;
+        console.log('Preserving current phone:', employeeId);
       }
       
       const formDataToSet = {
-        employeeId: employeeId || '',
+        phone: employeeId || '',
         leaveType: leaveRequest.leaveType || 'full_day',
         halfDayType: leaveRequest.halfDayType,
         startTime: leaveRequest.startTime || '',
@@ -274,12 +274,12 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
         [field]: value
       };
       
-      // Never allow employeeId to be empty
-      if (field === 'employeeId' && !value) {
-        console.error('ERROR: Attempting to set employeeId to empty value!');
+      // Never allow phone to be empty
+      if (field === 'phone' && !value) {
+        console.error('ERROR: Attempting to set phone to empty value!');
         console.error('Current formData:', prev);
         console.error('Field:', field, 'Value:', value);
-        return prev; // Don't update if trying to set employeeId to empty
+        return prev; // Don't update if trying to set phone to empty
       }
       
       console.log(`Updating field ${field} from "${prev[field]}" to "${value}"`);
@@ -288,8 +288,8 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
   };
 
   const validateForm = (): boolean => {
-    if (!formData.employeeId) {
-      console.error('VALIDATION ERROR: employeeId is empty!');
+    if (!formData.phone) {
+      console.error('VALIDATION ERROR: phone is empty!');
       console.error('Current formData:', formData);
       console.error('Selected employee:', selectedEmployee);
       toast.error('Vui lòng chọn nhân viên');
@@ -360,6 +360,17 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
     return option ? option.label : code;
   };
 
+  const formatDate = useCallback((date: Date) => {
+    const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+    const months = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+    
+    const weekday = weekdays[date.getDay()];
+    const day = date.getDate();
+    const month = months[date.getMonth()];
+    
+    return `${weekday}, ${day} ${month}`;
+  }, []);
+
   // Calendar handlers
   const handleSingleDateSelect = useCallback((date: string) => {
     setFormData(prev => ({
@@ -387,7 +398,7 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
     }
   }, [formData.leaveDate]);
 
-  const selectedEmployee = employees.find(emp => emp._id === formData.employeeId);
+  const selectedEmployee = employees.find(emp => emp._id === formData.phone);
   
   // Expose functions to parent component
   useImperativeHandle(ref, () => ({
@@ -401,9 +412,9 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
       console.log('Form data updated:', formData);
       console.log('Selected employee:', selectedEmployee);
       
-      // Debug employeeId changes
-      if (formData.employeeId === '') {
-        console.error('CRITICAL ERROR: employeeId became empty!');
+      // Debug phone changes
+      if (formData.phone === '') {
+        console.error('CRITICAL ERROR: phone became empty!');
         console.error('This should never happen. Debugging...');
         console.error('Current formData:', formData);
         console.error('Selected employee:', selectedEmployee);
@@ -411,17 +422,17 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
         console.error('mode:', mode);
       }
     }
-  }, [formData.employeeId, formData.leaveType, formData.leaveDate, formData.startTime, formData.endTime, formData.reason, formData.status, mode, isInitialized]);
+  }, [formData.phone, formData.leaveType, formData.leaveDate, formData.startTime, formData.endTime, formData.reason, formData.status, mode, isInitialized]);
 
   return (
     <Card className="w-full max-w-3xl mx-auto bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200">
       <CardHeader className="bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-t-lg">
         <CardTitle className="flex items-center space-x-2">
           {mode === 'create' ? <Plus className="h-5 w-5" /> : <Calendar className="h-5 w-5" />}
-          <span>{mode === 'create' ? '新增請假' : '編輯請假'}</span>
+          <span>{mode === 'create' ? '新增排休' : '編輯排休'}</span>
         </CardTitle>
         <CardDescription className="text-green-100">
-          {mode === 'create' ? '新增請假' : '編輯請假'}
+          {mode === 'create' ? '新增排休' : '編輯排休'}
         </CardDescription>
       </CardHeader>
       <CardContent className="p-6">
@@ -433,8 +444,8 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
               <span>選擇員工 *</span>
             </label>
             <Select 
-              value={formData.employeeId} 
-              onValueChange={(value) => handleInputChange('employeeId', value)}
+              value={formData.phone} 
+              onValueChange={(value) => handleInputChange('phone', value)}
             >
               <SelectTrigger className="border-green-300 focus:border-green-500 focus:ring-green-500">
                 <SelectValue placeholder="選擇員工" />
@@ -442,7 +453,7 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
               <SelectContent>
                 {employees.filter(emp => emp.status === 'active').map((employee) => (
                   <SelectItem key={employee._id} value={employee._id}>
-                        {employee.employeeId} - {employee.name} ({employee.department})
+                        {employee.phone} - {employee.name} ({employee.department})
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -455,12 +466,12 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
                   <div>
                     <p className="font-medium text-green-800">{selectedEmployee.name}</p>
                     <p className="text-sm text-green-600 flex items-center space-x-1">
-                      <span className="font-medium">Mã: {selectedEmployee.employeeId}</span>
+                      <span className="font-medium">Mã: {selectedEmployee.phone}</span>
                       <span className="mx-2">•</span>
                       <Building2 className="h-3 w-3" />
                       <span>{selectedEmployee.department}</span>
                       <span className="mx-2">•</span>
-                      <span>{selectedEmployee.position}</span>
+                      <span>{selectedEmployee.licensePlate}</span>
                     </p>
                   </div>
                 </div>
@@ -472,7 +483,7 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
                   <div>
                     <p className="font-medium text-yellow-800">{leaveRequest.employeeName}</p>
                     <p className="text-sm text-yellow-600">
-                      Mã nhân viên: {leaveRequest.employeeId} • {leaveRequest.department}
+                      Mã nhân viên: {leaveRequest.phone} • {leaveRequest.department}
                     </p>
                     <p className="text-xs text-yellow-700 mt-1">
                       ⚠️ 無法找到員工。請從下拉選單中選擇。
@@ -487,20 +498,20 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
               <Calendar className="h-4 w-4 text-blue-600" />
-              <span>請假類型 *</span>
+              <span>排休類型 *</span>
             </label>
             <Select 
               value={formData.leaveType} 
               onValueChange={(value: 'full_day' | 'half_day' | 'hourly') => handleInputChange('leaveType', value)}
             >
               <SelectTrigger className="border-blue-300 focus:border-blue-500 focus:ring-blue-500">
-                <SelectValue placeholder="選擇請假類型" />
+                <SelectValue placeholder="選擇排休類型" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="full_day">全薪假</SelectItem>
-                <SelectItem value="half_day">上午</SelectItem>
-                <SelectItem value="half_day">下午</SelectItem>
-                <SelectItem value="hourly">按時計薪</SelectItem>
+                <SelectItem value="full_day">排休全天</SelectItem>
+                <SelectItem value="half_day">選時段排休</SelectItem>
+                <SelectItem value="half_day">自定時間排休</SelectItem>
+                <SelectItem value="hourly">自定時間休</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -510,14 +521,14 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
                 <Clock className="h-4 w-4 text-orange-600" />
-                <span>請假時間 *</span>
+                <span>排休時間 *</span>
               </label>
               <Select 
                 value={formData.halfDayType || ''} 
                 onValueChange={(value: 'morning' | 'afternoon' | 'evening') => handleInputChange('halfDayType', value)}
               >
                 <SelectTrigger className="border-orange-300 focus:border-orange-500 focus:ring-orange-500">
-                  <SelectValue placeholder="選擇請假時間" />
+                  <SelectValue placeholder="選擇排休時間" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="morning">{getHalfDayLabel('morning')}</SelectItem>
@@ -562,12 +573,12 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
           <div className="space-y-3">
             <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
               <Calendar className="h-4 w-4 text-indigo-600" />
-              <span>選擇請假日期 *</span>
+              <span>選擇排休日期 *</span>
             </label>
             
             {/* Calendar Toggle Button */}
             <div className="flex items-center gap-2">
-              <Button
+              {/* <Button
                 type="button"
                 variant="outline"
                 onClick={() => setShowMiniCalendar(!showMiniCalendar)}
@@ -575,7 +586,7 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
               >
                 <CalendarDays className="h-4 w-4 mr-2" />
                 {showMiniCalendar ? '隱藏日曆' : '顯示日曆'}
-              </Button>
+              </Button> */}
               
               {selectedDates.length > 0 && (
                 <Button
@@ -616,12 +627,17 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
                       key={index}
                       className="px-2 py-1 bg-indigo-100 text-indigo-800 text-xs font-medium rounded-full"
                     >
-                      {new Date(date).toLocaleDateString('vi-VN')}
+                      {formatDate(new Date(date))}
                     </span>
                   ))}
                 </div>
                 <div className="mt-2 text-xs text-indigo-600">
-                      總共: 1 天
+                  {selectedDates.filter(date => {
+                    const day = new Date(date).getDay();
+                    return day === 0 || day === 6;
+                  }).length > 0 && (
+                    <span>(週末)</span>
+                  )}
                 </div>
               </div>
             )}
@@ -629,7 +645,7 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
             {/* Manual Date Input (Fallback) */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-600">
-                請假日期 (或手動輸入)
+                排休日期 (或手動輸入)
               </label>
               <Input
                 type="date"
@@ -644,10 +660,10 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
               <FileText className="h-4 w-4 text-teal-600" />
-              <span>請假原因 (可選)</span>
+              <span>排休原因 (可選)</span>
             </label>
             <Textarea
-              placeholder="請輸入請假原因..."
+              placeholder="請輸入排休原因..."
               value={formData.reason}
               onChange={(e) => handleInputChange('reason', e.target.value)}
               rows={3}
@@ -711,7 +727,7 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
               ) : (
                 <div className="flex items-center space-x-2">
                   <Save className="h-4 w-4" />
-                  <span>{mode === 'create' ? '新增請假' : '更新'}</span>  
+                  <span>{mode === 'create' ? '新增排休' : '更新'}</span>  
                 </div>
               )}
             </Button>

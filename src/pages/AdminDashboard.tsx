@@ -24,7 +24,7 @@ import {
   LogOut,
   Building2,
   User,
-  Mail,
+  // Mail,
   Phone,
   // Calendar as CalendarIcon,
   FileText,
@@ -138,8 +138,8 @@ const EmployeeManagement: React.FC = () => {
 
   const filteredEmployees = employees.filter(employee => {
     const matchesSearch = employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         employee.employeeId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         employee.email.toLowerCase().includes(searchTerm.toLowerCase());
+                         employee.phone.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         employee.licensePlate.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesDepartment = filterDepartment === 'all' || employee.department === filterDepartment;
     return matchesSearch && matchesDepartment;
   });
@@ -309,12 +309,11 @@ const EmployeeManagement: React.FC = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[120px]">員工編號</TableHead>
+                    <TableHead className="w-[120px]">電話號碼</TableHead>
                     <TableHead className="min-w-[200px]">員工姓名</TableHead>
+                    <TableHead className="w-[150px]">車牌號碼</TableHead>
                     <TableHead className="w-[150px]">部門</TableHead>
-                    <TableHead className="w-[150px]">職位</TableHead>
                     <TableHead className="w-[120px]">狀態</TableHead> 
-                    <TableHead className="w-[120px]">入職日期</TableHead>
                     <TableHead className="w-[200px]">聯絡方式</TableHead>
                     <TableHead className="w-[120px] text-center">操作</TableHead>
                   </TableRow>
@@ -324,7 +323,7 @@ const EmployeeManagement: React.FC = () => {
                     <TableRow key={employee._id} className="hover:bg-muted/50">
                       <TableCell className="font-medium">
                         <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
-                          {employee.employeeId}
+                          {employee.phone}
                         </span>
                       </TableCell>
                       <TableCell>
@@ -333,8 +332,8 @@ const EmployeeManagement: React.FC = () => {
                           <span className="font-medium">{employee.name}</span>
                   </div>
                       </TableCell>
+                      <TableCell>{employee.licensePlate}</TableCell>
                       <TableCell>{employee.department}</TableCell>
-                      <TableCell>{employee.position}</TableCell>
                       <TableCell>
                         <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                           employee.status === 'active' 
@@ -344,13 +343,8 @@ const EmployeeManagement: React.FC = () => {
                           {employee.status === 'active' ? '在職中' : '已離職'}
                         </span>
                       </TableCell>
-                      <TableCell>{formatDate(employee.joinDate)}</TableCell>
                       <TableCell>
                         <div className="space-y-1 text-xs">
-                    <div className="flex items-center space-x-1">
-                            <Mail className="h-3 w-3 text-orange-600" />
-                            <span className="truncate max-w-[150px]" title={employee.email}>{employee.email}</span>
-                    </div>
                     <div className="flex items-center space-x-1">
                             <Phone className="h-3 w-3 text-teal-600" />
                       <span>{employee.phone}</span>
@@ -505,7 +499,7 @@ const LeaveManagement: React.FC = () => {
       const data = await leaveRequestAPI.getAll(params);
       setLeaveRequests(data);
     } catch (error) {
-      toast.error('無法載入請假清單');
+      toast.error('無法載入排休清單');
     } finally {
       setIsLoading(false);
     }
@@ -522,27 +516,27 @@ const LeaveManagement: React.FC = () => {
 
   const handleSave = async (data: any) => {
     try {
-      // Convert MongoDB ObjectId to employeeId (employee code)
-      let processedData = { ...data };
-      if (data.employeeId) {
-        const selectedEmployee = employees.find(emp => emp._id === data.employeeId);
-        if (selectedEmployee) {
-          processedData.employeeId = selectedEmployee.employeeId; // Convert to employee code (e.g., "EMP001")
-          console.log('Converting employeeId from MongoDB ObjectId to employee code:', {
-            originalId: data.employeeId,
-            employeeCode: selectedEmployee.employeeId,
-            employeeName: selectedEmployee.name
-          });
-        } else {
-          console.error('Employee not found with ID:', data.employeeId);
-          toast.error('找不到員工');
-          return;
+              // Convert MongoDB ObjectId to phone (employee phone)
+        let processedData = { ...data };
+        if (data.phone) {
+          const selectedEmployee = employees.find(emp => emp._id === data.phone);
+          if (selectedEmployee) {
+            processedData.phone = selectedEmployee.phone; // Use employee phone directly
+            console.log('Using employee phone:', {
+              originalId: data.phone,
+              employeePhone: selectedEmployee.phone,
+              employeeName: selectedEmployee.name
+            });
+          } else {
+            console.error('Employee not found with ID:', data.phone);
+            toast.error('找不到員工');
+            return;
+          }
         }
-      }
       
       if (editingLeave) {
         await leaveRequestAPI.update(editingLeave._id, processedData);
-        toast.success('更新請假成功！');
+        toast.success('更新排休成功！');
         
         // Force refresh form with latest data after successful update
         if (leaveFormRef.current) {
@@ -552,7 +546,7 @@ const LeaveManagement: React.FC = () => {
       } else {
         console.log('Creating new leave request with data:', processedData);
         await leaveRequestAPI.createByAdmin(processedData);
-        toast.success('新增請假成功！');
+        toast.success('新增排休成功！');
       }
       setShowForm(false);
       setEditingLeave(null);
@@ -582,10 +576,10 @@ const LeaveManagement: React.FC = () => {
   const handleApprove = async (id: string) => {
     try {
       await leaveRequestAPI.update(id, { status: 'approved' });
-      toast.success('批准請假成功！');
+      toast.success('批准排休成功！');
       loadLeaveRequests();
     } catch (error) {
-      toast.error('無法批准請假');
+      toast.error('無法批准排休');
     }
   };
 
@@ -602,10 +596,10 @@ const LeaveManagement: React.FC = () => {
         status: 'rejected', 
         rejectionReason: reason 
       });
-      toast.success('拒絕請假成功！');
+      toast.success('拒絕排休成功！');
       loadLeaveRequests();
     } catch (error) {
-      toast.error('無法拒絕請假');
+      toast.error('無法拒絕排休');
     } finally {
       setRequestToReject(null);
     }
@@ -621,10 +615,10 @@ const LeaveManagement: React.FC = () => {
     
     try {
       await leaveRequestAPI.delete(requestToDelete._id);
-      toast.success('刪除請假成功！');
+      toast.success('刪除排休成功！');
       loadLeaveRequests();
     } catch (error) {
-      toast.error('無法刪除請假');
+      toast.error('無法刪除排休');
     } finally {
       setRequestToDelete(null);
     }
@@ -674,13 +668,13 @@ const LeaveManagement: React.FC = () => {
   const getLeaveTypeText = (leaveType: string, halfDayType?: string) => {
     switch (leaveType) {
       case 'full_day':
-        return '全薪假';
+        return '排休全天';
       case 'half_day':
-        return `半薪假 (${halfDayType === 'morning' ? '上午' : halfDayType === 'afternoon' ? '下午' : '晚上'})`;
+        return `半薪假 (${halfDayType === 'morning' ? '選時段排休' : halfDayType === 'afternoon' ? '自定時間排休' : '晚上'})`;
       case 'hourly':
-        return '按時計薪';
+        return '自定時間休';
       default:
-        return '請假';
+        return '排休';
     }
   };
 
@@ -720,7 +714,7 @@ const LeaveManagement: React.FC = () => {
     <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold text-gray-800">
-            {editingLeave ? '編輯請假' : '新增請假'}
+            {editingLeave ? '編輯排休' : '新增排休'}
           </h2>
           <Button
             variant="outline"
@@ -758,16 +752,16 @@ const LeaveManagement: React.FC = () => {
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div>
           <h2 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-            管理請假申請
+            管理排休申請
           </h2>
-          <p className="text-gray-600 mt-1">批准和監控員工的請假申請</p>
+          <p className="text-gray-600 mt-1">批准和監控員工的排休申請</p>
         </div>
         <Button
           onClick={() => setShowForm(true)}
           className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-6 py-2"
         >
           <Plus className="h-4 w-4 mr-2" />
-          新增請假
+          新增排休
         </Button>
       </div>
 
@@ -816,7 +810,7 @@ const LeaveManagement: React.FC = () => {
           <CardContent className="p-3 md:p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs md:text-sm font-medium text-blue-600">總請假</p>
+                <p className="text-xs md:text-sm font-medium text-blue-600">總排休</p>
                 <p className="text-lg md:text-2xl font-bold text-blue-800">{leaveRequests.length}</p>
               </div>
               <FileText className="h-6 w-6 md:h-8 md:w-8 text-blue-600" />
@@ -873,7 +867,7 @@ const LeaveManagement: React.FC = () => {
           {filteredRequests.length === 0 ? (
             <div className="text-center py-12">
               <FileText className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-              <p className="text-gray-500">找不到請假申請</p>
+              <p className="text-gray-500">找不到排休申請</p>
             </div>
           ) : (
             <>
@@ -883,7 +877,7 @@ const LeaveManagement: React.FC = () => {
                     <TableRow>
                       <TableHead className="w-[150px]">員工</TableHead>
                       <TableHead className="w-[120px]">部門</TableHead>
-                      <TableHead className="w-[120px]">請假類型</TableHead>
+                      <TableHead className="w-[120px]">排休類型</TableHead>
                       <TableHead className="w-[150px]">時間</TableHead>
                       <TableHead className="w-[120px]">狀態</TableHead> 
                       <TableHead className="w-[200px]">原因</TableHead>
@@ -921,7 +915,7 @@ const LeaveManagement: React.FC = () => {
                         </TableCell>
                         <TableCell>
                           <div className="max-w-[180px]">
-                            <div className="text-sm truncate" title={request.reason || 'No reason'}>
+                            <div className="text-sm truncate" title={request.reason || 'No reason'}>  
                               {request.reason || 'No reason'}
                 </div>
                             {request.rejectionReason && (
@@ -1082,7 +1076,7 @@ const LeaveManagement: React.FC = () => {
           <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-gray-900">
-                請假詳情 - {selectedRequest.employeeName}
+                排休詳情 - {selectedRequest.employeeName}
               </h3>
               <Button
                 variant="outline"
@@ -1107,7 +1101,7 @@ const LeaveManagement: React.FC = () => {
                     <p className="text-sm text-gray-900 mt-1">{selectedRequest.department}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600">請假類型</label>
+                    <label className="text-sm font-medium text-gray-600">排休類型</label>
                     <p className="text-sm text-gray-900 mt-1">
                       {getLeaveTypeText(selectedRequest.leaveType, selectedRequest.halfDayType)}
                     </p>
@@ -1153,7 +1147,7 @@ const LeaveManagement: React.FC = () => {
               {/* Reason */}
               {selectedRequest.reason && (
                 <div>
-                  <label className="text-sm font-medium text-gray-600">請假原因</label>
+                  <label className="text-sm font-medium text-gray-600">排休原因</label>
                   <p className="text-sm text-gray-900 mt-1 p-3 bg-gray-50 rounded-lg">  
                     {selectedRequest.reason}
                   </p>
@@ -1249,7 +1243,7 @@ const LeaveManagement: React.FC = () => {
       <PromptDialog
         open={rejectDialogOpen}
         onOpenChange={setRejectDialogOpen}
-        title="拒絕請假申請"
+        title="拒絕排休申請"
         description="請輸入拒絕原因:"
         placeholder="請輸入拒絕原因..."
         onConfirm={confirmReject}
@@ -1262,8 +1256,8 @@ const LeaveManagement: React.FC = () => {
       <ConfirmDialog
         open={deleteConfirmOpen}
         onOpenChange={setDeleteConfirmOpen}
-        title="確認刪除請假申請"
-        description={`確認刪除請假申請 "${requestToDelete?.employeeName}" 嗎? 此操作無法撤銷.`}
+        title="確認刪除排休申請"
+        description={`確認刪除排休申請 "${requestToDelete?.employeeName}" 嗎? 此操作無法撤銷.`}
         onConfirm={confirmDeleteRequest}
         variant="destructive"
         confirmText="刪除"
@@ -1325,7 +1319,7 @@ const Statistics: React.FC = () => {
       // Set demo data for testing
       const demoStats = [
         {
-          employeeId: 'EMP001',
+          phone: 'EMP001',
           employeeName: 'Nguyễn Văn An',
           department: 'IT',
           totalDays: 2.5,
@@ -1335,7 +1329,7 @@ const Statistics: React.FC = () => {
           status: 'approved'
         },
         {
-          employeeId: 'EMP002',
+          phone: 'EMP002',
           employeeName: 'Trần Thị Bình',
           department: 'HR',
           totalDays: 1,
@@ -1372,10 +1366,10 @@ const Statistics: React.FC = () => {
       }
 
       if (shouldInclude || period === 'all') {
-        const key = request.employeeId;
+        const key = request.phone;
         if (!employeeStats.has(key)) {
           employeeStats.set(key, {
-            employeeId: request.employeeId,
+            phone: request.phone,
             employeeName: request.employeeName,
             department: request.department,
             totalDays: 0,
@@ -1422,10 +1416,10 @@ const Statistics: React.FC = () => {
     const employeeStatsMap = new Map<string, any>();
     
     leaveRequests.forEach(request => {
-      const key = request.employeeId;
+      const key = request.phone;
       if (!employeeStatsMap.has(key)) {
         employeeStatsMap.set(key, {
-          employeeId: request.employeeId,
+          phone: request.phone,
           employeeName: request.employeeName,
           department: request.department,
           fullDays: 0,
@@ -1490,9 +1484,9 @@ const Statistics: React.FC = () => {
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div>
           <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-            統計請假
+            統計排休
           </h2>
-          <p className="text-gray-600 mt-1">查看員工請假總天數</p>
+          <p className="text-gray-600 mt-1">查看員工排休總天數</p>
         </div>
         
         {/* Period Selection */}
@@ -1575,7 +1569,7 @@ const Statistics: React.FC = () => {
             <span>詳細統計員工</span>
           </CardTitle>
           <CardDescription className="text-blue-100">
-            查看每個員工的請假詳情
+            查看每個員工的排休詳情
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
@@ -1591,12 +1585,12 @@ const Statistics: React.FC = () => {
                   <TableRow>
                     <TableHead className="w-[200px]">員工</TableHead>
                     <TableHead className="w-[150px]">部門</TableHead>
-                    <TableHead className="w-[100px] text-center">全薪假</TableHead>
+                    <TableHead className="w-[100px] text-center">排休全天</TableHead>
                     <TableHead className="w-[100px] text-center">半薪假</TableHead> 
                     <TableHead className="w-[100px] text-center">小時假</TableHead>
                     <TableHead className="w-[100px] text-center">狀態</TableHead>
                     <TableHead className="w-[120px] text-center">總天數</TableHead>
-                    <TableHead className="w-[200px] text-center">請假詳情</TableHead>
+                    <TableHead className="w-[200px] text-center">排休詳情</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1648,8 +1642,8 @@ const Statistics: React.FC = () => {
                                 {formatDate(detail.startDate)} - {formatDate(detail.endDate)}
                               </div>
                               <div className="text-gray-600">
-                                {detail.leaveType === 'full_day' ? '全薪假' : 
-                                 detail.leaveType === 'half_day' ? `半薪假 (${detail.halfDayType === 'morning' ? '上午' : '下午'})` : 
+                                {detail.leaveType === 'full_day' ? '排休全天' : 
+                                 detail.leaveType === 'half_day' ? `半薪假 (${detail.halfDayType === 'morning' ? '選時段排休' : '自定時間排休'})` : 
                                  '小時假'}
                               </div>
                               <div className="text-gray-500 truncate" title={detail.reason}>
@@ -1659,7 +1653,7 @@ const Statistics: React.FC = () => {
                           ))}
                           {stat.leaveDetails.length > 3 && (
                             <div className="text-xs text-blue-600 font-medium">
-                              +{stat.leaveDetails.length - 3} 其他請假
+                              +{stat.leaveDetails.length - 3} 其他排休
                             </div>
                           )}
                           <Button
@@ -1756,7 +1750,7 @@ const Statistics: React.FC = () => {
           <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-gray-900">
-                請假詳情 - {selectedEmployee.employeeName}
+                排休詳情 - {selectedEmployee.employeeName}
               </h3>
               <Button
                 variant="outline"
@@ -1791,7 +1785,7 @@ const Statistics: React.FC = () => {
                 <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-blue-600">全薪假</p>
+                      <p className="text-sm font-medium text-blue-600">排休全天</p>
                       <p className="text-2xl font-bold text-blue-800">{selectedEmployee.fullDays.toFixed(1)}</p>
                     </div>
                     <Calendar className="h-8 w-8 text-blue-600" />
@@ -1818,7 +1812,7 @@ const Statistics: React.FC = () => {
                 <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-orange-600">總請假</p>
+                      <p className="text-sm font-medium text-orange-600">總排休</p>
                       <p className="text-2xl font-bold text-orange-800">{selectedEmployee.leaveDetails.length}</p>
                     </div>
                     <FileText className="h-8 w-8 text-orange-600" />
@@ -1828,7 +1822,7 @@ const Statistics: React.FC = () => {
 
               {/* All Leave Details */}
               <div>
-                <h4 className="text-lg font-semibold text-gray-900 mb-4">所有請假</h4>
+                <h4 className="text-lg font-semibold text-gray-900 mb-4">所有排休</h4>
                 <div className="space-y-3">
                   {selectedEmployee.leaveDetails.map((detail: any, index: number) => (
                     <div key={index} className="p-4 bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
@@ -1849,10 +1843,10 @@ const Statistics: React.FC = () => {
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                              <label className="text-sm font-medium text-gray-600">請假類型</label>  
+                              <label className="text-sm font-medium text-gray-600">排休類型</label>  
                               <p className="text-sm text-gray-900">
-                                {detail.leaveType === 'full_day' ? '全薪假' : 
-                                 detail.leaveType === 'half_day' ? `半薪假 (${detail.halfDayType === 'morning' ? '上午' : '下午'})` : 
+                                {detail.leaveType === 'full_day' ? '排休全天' : 
+                                 detail.leaveType === 'half_day' ? `半薪假 (${detail.halfDayType === 'morning' ? '選時段排休' : '自定時間排休'})` : 
                                  '小時假'}
                               </p>
                             </div>
@@ -1906,7 +1900,7 @@ const Statistics: React.FC = () => {
           <CardContent className="p-3 md:p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs md:text-sm font-medium text-orange-600">全薪假</p>
+                <p className="text-xs md:text-sm font-medium text-orange-600">排休全天</p>
                 <p className="text-lg md:text-2xl font-bold text-orange-800">
                   {statistics.reduce((sum, stat) => sum + (stat.fullDays || 0), 0)}
                 </p>
@@ -1938,8 +1932,8 @@ const Statistics: React.FC = () => {
           <CardHeader className="pb-3">
             <CardTitle className="text-base md:text-lg font-semibold text-blue-800 flex items-center gap-2">
               <BarChart3 className="h-4 w-4 md:h-5 md:w-5" />
-              <span className="hidden sm:inline">請假類型分布</span>
-              <span className="sm:hidden">請假類型</span>
+              <span className="hidden sm:inline">排休類型分布</span>
+              <span className="sm:hidden">排休類型</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
@@ -1948,7 +1942,7 @@ const Statistics: React.FC = () => {
                 <>
                   <div className="space-y-2 md:space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs md:text-sm font-medium text-gray-600">全薪假</span>
+                      <span className="text-xs md:text-sm font-medium text-gray-600">排休全天</span>
                       <span className="text-xs md:text-sm font-medium text-blue-600">
                         {statistics.reduce((sum, stat) => sum + (stat.fullDays || 0), 0)}
                       </span>
@@ -2064,8 +2058,8 @@ const Statistics: React.FC = () => {
           <CardHeader className="pb-3">
             <CardTitle className="text-base md:text-lg font-semibold text-orange-800 flex items-center gap-2">
               <Calendar className="h-4 w-4 md:h-5 md:w-5" />
-              <span className="hidden sm:inline">請假趨勢</span>
-              <span className="sm:hidden">請假趨勢</span>
+              <span className="hidden sm:inline">排休趨勢</span>
+              <span className="sm:hidden">排休趨勢</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
@@ -2151,7 +2145,7 @@ const Statistics: React.FC = () => {
           <CardHeader className="pb-3">
             <CardTitle className="text-base md:text-lg font-semibold text-indigo-800 flex items-center gap-2">
               <Users className="h-4 w-4 md:h-5 md:w-5" />
-              <span className="hidden sm:inline">Top 員工請假</span>
+              <span className="hidden sm:inline">Top 員工排休</span>
               <span className="sm:hidden">Top 員工</span>
             </CardTitle>
           </CardHeader> 
@@ -2198,7 +2192,7 @@ const Statistics: React.FC = () => {
           <CardHeader className="pb-3">
             <CardTitle className="text-base md:text-lg font-semibold text-teal-800 flex items-center gap-2">
               <Building2 className="h-4 w-4 md:h-5 md:w-5" />
-              <span className="hidden sm:inline">部門請假總覽</span>
+              <span className="hidden sm:inline">部門排休總覽</span>
               <span className="sm:hidden">部門</span>
             </CardTitle>
           </CardHeader>
@@ -2218,7 +2212,7 @@ const Statistics: React.FC = () => {
                     }
                     
                     // Add employee to set for unique count
-                    acc[request.department].employeeCount.add(request.employeeId);
+                    acc[request.department].employeeCount.add(request.phone);
                     
                     // Calculate days based on leave type
                     if (request.leaveType === 'full_day') {
@@ -2262,7 +2256,7 @@ const Statistics: React.FC = () => {
                       </div>
                       <div className="space-y-2">
                         <div className="flex items-center justify-between text-xs">
-                          <span className="text-gray-600">全薪假:</span>
+                          <span className="text-gray-600">排休全天:</span>
                           <span className="font-medium text-blue-600">{deptData.fullDays.toFixed(1)}</span>
                         </div>
                         <div className="flex items-center justify-between text-xs">
@@ -2293,7 +2287,7 @@ const Statistics: React.FC = () => {
           <CardHeader className="pb-3">
             <CardTitle className="text-base md:text-lg font-semibold text-pink-800 flex items-center gap-2">
               <BarChart3 className="h-4 w-4 md:h-5 md:w-5" />
-              <span className="hidden sm:inline">請假狀態分布</span>
+              <span className="hidden sm:inline">排休狀態分布</span>
               <span className="sm:hidden">狀態</span>
             </CardTitle>
           </CardHeader>
@@ -2370,7 +2364,7 @@ const Statistics: React.FC = () => {
           <CardHeader className="pb-3">
             <CardTitle className="text-base md:text-lg font-semibold text-amber-800 flex items-center gap-2">
               <Calendar className="h-4 w-4 md:h-5 md:w-5" />
-              <span className="hidden sm:inline">請假月份分布</span>
+              <span className="hidden sm:inline">排休月份分布</span>
               <span className="sm:hidden">月份</span>
             </CardTitle>
           </CardHeader>
@@ -2406,7 +2400,7 @@ const Statistics: React.FC = () => {
                         {getMonthName(month)}
                       </span>
                     <div className="flex items-center gap-4">
-                      <span className="text-xs text-amber-600">{requests} 請假</span>
+                      <span className="text-xs text-amber-600">{requests} 排休</span>
                       <span className="text-sm font-bold text-amber-700">{totalDays.toFixed(1)} 天</span>
                     </div>
                   </div>
@@ -2421,7 +2415,7 @@ const Statistics: React.FC = () => {
           <CardHeader className="pb-3">
             <CardTitle className="text-base md:text-lg font-semibold text-emerald-800 flex items-center gap-2">
               <Clock className="h-4 w-4 md:h-5 md:w-5" />
-              <span className="hidden sm:inline">請假活動近期</span>
+              <span className="hidden sm:inline">排休活動近期</span>
               <span className="sm:hidden">近期</span>
             </CardTitle>
           </CardHeader>
@@ -2455,7 +2449,7 @@ const Statistics: React.FC = () => {
                       </span>
                     </div>
                                           <div className="text-xs text-gray-600">
-                        {formatDate(request.startDate)} - {request.leaveType === 'full_day' ? '全薪假' : request.leaveType === 'half_day' ? '半薪假' : '小時假'}
+                        {formatDate(request.startDate)} - {request.leaveType === 'full_day' ? '排休全天' : request.leaveType === 'half_day' ? '半薪假' : '小時假'}
                       </div>
                   </div>
                 ));
@@ -2554,8 +2548,8 @@ const SettingsTab: React.FC = () => {
             {halfDayOptions.map((option) => (
               <div key={option._id} className="flex items-center space-x-4 p-4 bg-white rounded-lg border border-indigo-100 hover:shadow-md transition-shadow">
                 <div className="w-24 text-sm font-medium text-indigo-700">
-                  {option.code === 'morning' ? '上午' : 
-                   option.code === 'afternoon' ? '下午' : '晚上'}
+                  {option.code === 'morning' ? '選時段排休' : 
+                   option.code === 'afternoon' ? '自定時間排休' : '晚上'}
                 </div>
                 
                 {editingOption === option._id ? (
@@ -2661,7 +2655,7 @@ const AdminDashboard: React.FC = () => {
               </div>
               <div>
                 <h1 className="text-xl lg:text-2xl font-bold text-white">
-                  請假管理系統
+                  排休管理系統
                 </h1>
                 <p className="text-sm text-green-100">ABC有限公司</p>
               </div>
@@ -2688,15 +2682,15 @@ const AdminDashboard: React.FC = () => {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="w-full max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8">
         <Tabs defaultValue="leaves" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-6 h-auto p-1 bg-gray-100 rounded-xl gap-1">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 h-auto p-1 bg-gray-100 rounded-xl gap-1">
             <TabsTrigger 
               value="leaves" 
               className="flex flex-col items-center justify-center space-y-1 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-green-600 rounded-lg transition-all duration-200 text-xs sm:text-sm py-3"
             >
               <Calendar className="h-4 w-4 sm:h-5 sm:w-5" />
-              <span className="text-xs">請假</span>
+              <span className="text-xs">排休</span>
             </TabsTrigger>
             <TabsTrigger 
               value="statistics" 
@@ -2719,13 +2713,13 @@ const AdminDashboard: React.FC = () => {
               <Building2 className="h-4 w-4 sm:h-5 sm:w-5" />
               <span className="text-xs">部門</span>
             </TabsTrigger>
-            <TabsTrigger 
+            {/* <TabsTrigger 
               value="positions" 
               className="flex flex-col items-center justify-center space-y-1 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-orange-600 rounded-lg transition-all duration-200 text-xs sm:text-sm py-3"
             >
               <User className="h-4 w-4 sm:h-5 sm:w-5" />
               <span className="text-xs">職位</span>
-            </TabsTrigger>
+            </TabsTrigger> */}
             <TabsTrigger 
               value="settings" 
               className="flex flex-col items-center justify-center space-y-1 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-indigo-600 rounded-lg transition-all duration-200 text-xs sm:text-sm py-3"

@@ -123,11 +123,11 @@ const EmployeeDashboard: React.FC = () => {
       case 'full_day':
         return '全天假';
       case 'half_day':
-        return `半天假 (${halfDayType === 'morning' ? '上午' : halfDayType === 'afternoon' ? '下午' : '晚上'})`;
+        return `半天假 (${halfDayType === 'morning' ? '選時段排休' : halfDayType === 'afternoon' ? '自定時間排休' : '晚上'})`;
       case 'hourly':
         return '時假';
       default:
-        return '請假';
+        return '排休';
     }
   };
 
@@ -199,32 +199,32 @@ const EmployeeDashboard: React.FC = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-gradient-to-r from-green-600 to-emerald-600 shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center min-h-[5rem] py-4">
+        <div className="w-full max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
+          <div className="flex justify-between items-center min-h-[4rem] sm:min-h-[5rem] py-2 sm:py-4">
             {/* Company Logo and Name - Left Side */}
             <div className="flex items-center space-x-2 sm:space-x-4 flex-1 min-w-0">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm flex-shrink-0">
-                <Building2 className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm flex-shrink-0">
+                <Building2 className="h-5 w-5 sm:h-6 sm:w-6 lg:h-8 lg:w-8 text-white" />
               </div>
               <div className="min-w-0 flex-1">
-                <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-white leading-tight truncate">
-                  請假管理系統
+                <h1 className="text-base sm:text-lg lg:text-2xl font-bold text-white leading-tight truncate">
+                  排休管理系統
                 </h1>
-                <p className="text-xs sm:text-sm text-green-100 truncate">ABC 有限公司</p>
+                <p className="text-xs sm:text-sm text-green-100 truncate">中華衛星</p>
               </div>
             </div>
             
             {/* Employee Name and Logout Button - Right Side */}
             <div className="flex flex-col items-end space-y-1 sm:space-y-2 flex-shrink-0 ml-2 sm:ml-4">
               <div className="text-right text-white">
-                <p className="text-xs sm:text-sm font-medium truncate max-w-[120px] sm:max-w-none">{user?.name}</p>
-                <p className="text-xs text-green-100 truncate max-w-[120px] sm:max-w-none">{(user as Employee)?.department}</p>
+                <p className="text-xs sm:text-sm font-medium truncate max-w-[100px] sm:max-w-[120px] lg:max-w-none">{user?.name}</p>
+                <p className="text-xs text-green-100 truncate max-w-[100px] sm:max-w-[120px] lg:max-w-none">{(user as Employee)?.department}</p>
               </div>
               <Button 
                 variant="outline" 
                 size="sm" 
                 onClick={logout}
-                className="border-white/30 bg-green-700/50 text-white hover:bg-green-700/70 backdrop-blur-sm text-xs sm:text-sm px-2 sm:px-3"
+                className="border-white/30 bg-green-700/50 text-white hover:bg-green-700/70 backdrop-blur-sm text-xs px-2 sm:px-3"
               >
                 登出
               </Button>
@@ -234,13 +234,13 @@ const EmployeeDashboard: React.FC = () => {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="w-full max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8">
         {/* Year and Month Filter */}
-        <div className="mb-6">
+        <div className="mb-4 sm:mb-6">
           <div className="flex flex-col items-center space-y-2">
-            <div className="flex items-center justify-center space-x-4">
+            <div className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-4">
               <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
-                <SelectTrigger className="w-32 bg-white border-2 border-gray-300 hover:border-green-500 focus:border-green-500">
+                <SelectTrigger className="w-full sm:w-32 bg-white border-2 border-gray-300 hover:border-green-500 focus:border-green-500">
                   <SelectValue placeholder="選擇年份" />
                 </SelectTrigger>
                 <SelectContent>
@@ -251,7 +251,7 @@ const EmployeeDashboard: React.FC = () => {
               </Select>
               
               <Select value={selectedMonth.toString()} onValueChange={(value) => setSelectedMonth(parseInt(value))}>
-                <SelectTrigger className="w-32 bg-white border-2 border-gray-300 hover:border-green-500 focus:border-green-500">
+                <SelectTrigger className="w-full sm:w-32 bg-white border-2 border-gray-300 hover:border-green-500 focus:border-green-500">
                   <SelectValue placeholder="選擇月份" />
                 </SelectTrigger>
                 <SelectContent>
@@ -275,7 +275,7 @@ const EmployeeDashboard: React.FC = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-3 gap-2 mb-4">
+        <div className="grid grid-cols-3 gap-1 sm:gap-2 mb-4">
           <Card className="h-20">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 px-3 py-2">
               <CardTitle className="text-sm font-medium">已核准</CardTitle>
@@ -308,25 +308,25 @@ const EmployeeDashboard: React.FC = () => {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="calendar" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 md:grid-cols-3 h-auto p-1 bg-gray-100 rounded-xl gap-1">
+        <Tabs defaultValue="calendar" className="space-y-4 sm:space-y-6">
+          <TabsList className="grid w-full grid-cols-3 h-auto p-1 bg-gray-100 rounded-xl gap-1">
             <TabsTrigger 
               value="calendar" 
-              className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 rounded-lg transition-all duration-200 text-xs sm:text-sm py-2"
+              className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 rounded-lg transition-all duration-200 text-sm sm:text-lg py-2"
             >
-              <span className="hidden xs:inline">請假日曆</span>
+              <span className="hidden xs:inline">排休日曆</span>
               <span className="xs:hidden">日曆</span>
             </TabsTrigger>
             <TabsTrigger 
               value="request" 
-              className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-green-600 rounded-lg transition-all duration-200 text-xs sm:text-sm py-2"
+              className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-green-600 rounded-lg transition-all duration-200 text-sm sm:text-lg py-2"
             >
-              <span className="hidden xs:inline">申請請假</span>
+              <span className="hidden xs:inline">申請排休</span>
               <span className="xs:hidden">申請</span>
             </TabsTrigger>
             <TabsTrigger 
               value="history" 
-              className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-purple-600 rounded-lg transition-all duration-200 text-xs sm:text-sm py-2"
+              className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-purple-600 rounded-lg transition-all duration-200 text-sm sm:text-lg py-2"
             >
               <span className="hidden xs:inline">申請歷史</span>
               <span className="xs:hidden">歷史</span>
@@ -336,7 +336,7 @@ const EmployeeDashboard: React.FC = () => {
           <TabsContent value="calendar" className="space-y-4">
             <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
               <p className="text-sm text-blue-800">
-                📅 請假日曆目前顯示： <span className="font-semibold">{selectedYear} - {getMonthName(selectedMonth)}</span>
+                📅 排休日曆目前顯示： <span className="font-semibold">{selectedYear} - {getMonthName(selectedMonth)}</span>
               </p>
             </div>
             <LeaveCalendar 
@@ -357,9 +357,9 @@ const EmployeeDashboard: React.FC = () => {
           <TabsContent value="history" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>請假申請歷史</CardTitle>
+                <CardTitle>排休申請歷史</CardTitle>
                 <CardDescription>
-                  查看您的所有請假申請
+                  查看您的所有排休申請
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -391,7 +391,7 @@ const EmployeeDashboard: React.FC = () => {
                   
                   <Select value={leaveTypeFilter} onValueChange={setLeaveTypeFilter}>
                     <SelectTrigger className="w-full sm:w-40">
-                      <SelectValue placeholder="請假類型" />
+                      <SelectValue placeholder="排休類型" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">所有類型</SelectItem>
@@ -410,7 +410,7 @@ const EmployeeDashboard: React.FC = () => {
                 ) : filteredRequests.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <FileText className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                    <p>{selectedYear} - {getMonthName(selectedMonth)} 沒有請假申請</p>
+                    <p>{selectedYear} - {getMonthName(selectedMonth)} 沒有排休申請</p>
                     <p className="text-sm mt-2">請嘗試選擇其他時間或檢查篩選條件</p>
                   </div>
                 ) : (
@@ -419,7 +419,7 @@ const EmployeeDashboard: React.FC = () => {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead className="w-[200px]">請假類型</TableHead>
+                            <TableHead className="w-[200px]">排休類型</TableHead>
                             <TableHead>時間</TableHead>
                             <TableHead className="max-w-xs">原因</TableHead>
                             <TableHead className="w-[120px]">狀態</TableHead>
@@ -569,7 +569,7 @@ const EmployeeDashboard: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b">
-              <h2 className="text-xl font-semibold">請假申請詳情</h2>
+              <h2 className="text-xl font-semibold">排休申請詳情</h2>
               <Button variant="ghost" size="sm" onClick={closeDetailModal}>
                 <X className="h-4 w-4" />
               </Button>
@@ -581,7 +581,7 @@ const EmployeeDashboard: React.FC = () => {
                 <div>
                   <h3 className="font-medium text-gray-900 mb-2">基本資訊</h3>
                   <div className="space-y-2 text-sm">
-                    <div><span className="font-medium">請假類型：</span> {getLeaveTypeText(selectedRequest.leaveType, selectedRequest.halfDayType)}</div>
+                    <div><span className="font-medium">排休類型：</span> {getLeaveTypeText(selectedRequest.leaveType, selectedRequest.halfDayType)}</div>
                     <div><span className="font-medium">狀態：</span> {getStatusBadge(selectedRequest.status)}</div>
                     <div><span className="font-medium">建立日期：</span> {format(new Date(selectedRequest.createdAt), 'dd/MM/yyyy HH:mm', { locale: vi })}</div>
                     {selectedRequest.approvedBy && (
@@ -594,7 +594,7 @@ const EmployeeDashboard: React.FC = () => {
                 </div>
                 
                 <div>
-                  <h3 className="font-medium text-gray-900 mb-2">請假時間</h3>
+                  <h3 className="font-medium text-gray-900 mb-2">排休時間</h3>
                   <div className="space-y-2 text-sm">
                     <div><span className="font-medium">開始日期：</span> {format(new Date(selectedRequest.startDate), 'dd/MM/yyyy', { locale: vi })}</div>
                     <div><span className="font-medium">結束日期：</span> {format(new Date(selectedRequest.endDate), 'dd/MM/yyyy', { locale: vi })}</div>
@@ -608,7 +608,7 @@ const EmployeeDashboard: React.FC = () => {
               {/* Reason */}
               {selectedRequest.reason && (
                 <div>
-                  <h3 className="font-medium text-gray-900 mb-2">請假原因</h3>
+                  <h3 className="font-medium text-gray-900 mb-2">排休原因</h3>
                   <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
                     {selectedRequest.reason}
                   </p>

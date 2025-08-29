@@ -14,7 +14,7 @@ const App: React.FC = () => {
   return (
     <ErrorBoundary>
       <Router>
-        <div className="App">
+        <div className="App w-full overflow-x-hidden">
           <Toaster
             position="top-right"
             toastOptions={{

@@ -1,13 +1,10 @@
 export interface Employee {
   _id: string;
-  employeeId: string;
+  phone: string;
   name: string;
   department: string;
-  position: string;
-  email: string;
-  phone: string;
+  licensePlate: string;
   status: 'active' | 'inactive';
-  joinDate: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -22,7 +19,7 @@ export interface Attachment {
 
 export interface LeaveRequest {
   _id: string;
-  employeeId: string;
+  phone: string;
   employeeName: string;
   department: string;
   leaveType: 'full_day' | 'half_day' | 'hourly';
@@ -63,7 +60,7 @@ export interface LoginCredentials {
 }
 
 export interface LeaveStatistics {
-  employeeId: string;
+  phone: string;
   employeeName: string;
   department: string;
   totalDays: number;
@@ -76,7 +73,7 @@ export interface LeaveStatistics {
 export interface CalendarEvent {
   date: string;
   events: {
-    employeeId: string;
+    phone: string;
     employeeName: string;
     department: string;
     leaveType: 'full_day' | 'half_day' | 'hourly';

@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth } from 'date-fns';
-import { vi } from 'date-fns/locale';
+import { zhTW } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
 import { leaveRequestAPI } from '@/services/api';
 import { CalendarEvent } from '@/types';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, RefreshCw, Smartphone, X } from 'lucide-react';
+import { getMonthName } from '@/lib/dateUtils';
 
 interface LeaveCalendarProps {
   selectedYear?: number;
@@ -35,6 +36,37 @@ const LeaveCalendar: React.FC<LeaveCalendarProps> = ({
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Custom CSS styles for calendar events
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      .calendar-event {
+        border-radius: 0 !important;
+        text-overflow: inherit !important;
+        white-space: normal !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        margin-left: -0.125rem !important;
+        margin-right: -0.125rem !important;
+      }
+      
+      @media (max-width: 767px) {
+        .calendar-event {
+          margin-left: -0.25rem !important;
+          margin-right: -0.25rem !important;
+          padding-left: 0 !important;
+          padding-right: 0 !important;
+          width: calc(100% + 0.5rem) !important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    return () => {
+      document.head.removeChild(style);
+    };
   }, []);
 
   const fetchEvents = async () => {
@@ -70,7 +102,7 @@ const LeaveCalendar: React.FC<LeaveCalendarProps> = ({
       // Set empty events array on error to prevent crashes
       setEvents([]);
       // You could also show a toast error here
-      // toast.error('無法載入請假日曆');
+      // toast.error('無法載入排休日曆');
     } finally {
       setIsLoading(false);
     }
@@ -157,14 +189,14 @@ const LeaveCalendar: React.FC<LeaveCalendarProps> = ({
         return '全天假';
       case 'half_day':
         return halfDayType === 'morning' 
-          ? '上午' 
+          ? '選時段排休' 
           : halfDayType === 'afternoon'
-          ? '下午'
+          ? '自定時間排休'
           : '晚上';
       case 'hourly':
         return '時假';
       default:
-        return '請假';
+        return '排休';
     }
   };
 
@@ -196,8 +228,8 @@ const LeaveCalendar: React.FC<LeaveCalendarProps> = ({
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
           <CardTitle className="flex items-center gap-2 text-lg lg:text-xl">
             <CalendarIcon className="h-5 w-5 lg:h-6 lg:w-6" />
-            <span className="hidden sm:inline">公司請假日曆</span>
-            <span className="sm:hidden">請假日曆</span>
+            <span className="hidden sm:inline">公司排休日曆</span>
+            <span className="sm:hidden">排休日曆</span>
             {isMobileView && <Smartphone className="h-4 w-4 ml-2 opacity-75" />}
           </CardTitle>
           <div className="flex items-center gap-2 w-full sm:w-auto justify-center">
@@ -210,7 +242,7 @@ const LeaveCalendar: React.FC<LeaveCalendarProps> = ({
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <span className="text-base lg:text-lg font-medium min-w-[100px] lg:min-w-[120px] text-center">
-              {format(currentDate, 'MMMM yyyy', { locale: vi })}
+              {getMonthName(currentDate.getMonth() + 1)} {currentDate.getFullYear()}
             </span>
             <Button
               variant="outline"
@@ -241,8 +273,8 @@ const LeaveCalendar: React.FC<LeaveCalendarProps> = ({
           <div className="flex items-center justify-center h-48 sm:h-64">
             <div className="text-center">
               <CalendarIcon className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-gray-400 mb-4" />
-              <p className="text-gray-500 text-sm sm:text-base">沒有請假資料</p>
-              <p className="text-xs sm:text-sm text-gray-400 mt-2">請稍後再試或建立新的請假申請</p>
+              <p className="text-gray-500 text-sm sm:text-base">沒有排休資料</p>
+              <p className="text-xs sm:text-sm text-gray-400 mt-2">請稍後再試或建立新的排休申請</p>
               <Button 
                 onClick={fetchEvents} 
                 className="mt-4 bg-blue-600 hover:bg-blue-700 text-white"
@@ -254,10 +286,10 @@ const LeaveCalendar: React.FC<LeaveCalendarProps> = ({
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
+          <div className="grid grid-cols-7 gap-0 sm:gap-0.5 lg:gap-1 w-full">
             {/* Weekday headers */}
             {weekdays.map(day => (
-              <div key={day} className="p-2 sm:p-3 text-center text-xs sm:text-sm font-medium text-blue-600 bg-blue-50 rounded-lg">
+              <div key={day} className="p-1 sm:p-2 lg:p-3 text-center text-xs sm:text-sm font-medium text-blue-600 bg-blue-50 rounded-lg">
                 {day}
               </div>
             ))}
@@ -288,7 +320,7 @@ const LeaveCalendar: React.FC<LeaveCalendarProps> = ({
                     {displayEvents.map((event, index) => (
                       <div
                         key={index}
-                        className={`p-0.5 sm:p-1 rounded-full text-xs font-medium cursor-pointer hover:shadow-sm transition-shadow ${getLeaveTypeColor(event.leaveType, event.halfDayType)}`}
+                        className={`calendar-event p-0.5 sm:p-1 text-[10px] font-medium cursor-pointer hover:shadow-sm transition-shadow ${getLeaveTypeColor(event.leaveType, event.halfDayType)}`}
                         title={`${event.employeeName} - ${event.department} - ${getLeaveTypeText(event.leaveType, event.halfDayType)}`}
                         onClick={() => {
                           // Show dropdown for this day
@@ -296,12 +328,9 @@ const LeaveCalendar: React.FC<LeaveCalendarProps> = ({
                           setOpenDropdown(openDropdown === dayKey ? null : dayKey);
                         }}
                       >
-                        {/* Compact event display */}
-                        <div className="truncate leading-tight">
-                          {isMobileView 
-                            ? `${event.employeeName.split(' ').slice(-1)[0]}`
-                            : `${event.employeeName}`
-                          }
+                        {/* Compact event display - only show name */}
+                        <div className="leading-tight">
+                          {event.employeeName}
                         </div>
                       </div>
                     ))}
@@ -336,24 +365,24 @@ const LeaveCalendar: React.FC<LeaveCalendarProps> = ({
         <div className="mt-4 sm:mt-6 p-4 sm:p-6 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl border border-gray-200">
           <h4 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-gray-800 flex items-center gap-2">
             <CalendarIcon className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
-            Legend
+            備註
           </h4>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
             <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
               <div className="w-3 h-3 sm:w-4 sm:h-4 bg-red-500 rounded-full shadow-md"></div>
-              <span className="text-xs sm:text-sm font-medium text-gray-700">全薪假</span>
+              <span className="text-xs sm:text-sm font-medium text-gray-700">排休全天</span>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
               <div className="w-3 h-3 sm:w-4 sm:h-4 bg-orange-500 rounded-full shadow-md"></div>
-              <span className="text-xs sm:text-sm font-medium text-gray-700">上午</span>
+              <span className="text-xs sm:text-sm font-medium text-gray-700">選時段排休</span>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
               <div className="w-3 h-3 sm:w-4 sm:h-4 bg-yellow-500 rounded-full shadow-md"></div>
-              <span className="text-xs sm:text-sm font-medium text-gray-700">下午</span>
+              <span className="text-xs sm:text-sm font-medium text-gray-700">自定時間排休</span>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
               <div className="w-3 h-3 sm:w-4 sm:h-4 bg-blue-500 rounded-full shadow-md"></div>
-              <span className="text-xs sm:text-sm font-medium text-gray-700">按時計薪</span>
+              <span className="text-xs sm:text-sm font-medium text-gray-700">自定時間休</span>
             </div>
           </div>
         </div>
@@ -365,7 +394,7 @@ const LeaveCalendar: React.FC<LeaveCalendarProps> = ({
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-gray-900">
-                請假詳細資料 {format(new Date(openDropdown), 'dd/MM/yyyy', { locale: vi })}
+                排休詳細資料 {format(new Date(openDropdown), 'yyyy年MM月dd日', { locale: zhTW })}
               </h3> 
               <Button
                 variant="ghost"
@@ -394,7 +423,7 @@ const LeaveCalendar: React.FC<LeaveCalendarProps> = ({
                             </div>
                                                          <div className="space-y-1 text-sm text-gray-600">
                                <div><span className="font-medium">部門:</span> {event.department}</div>
-                               <div><span className="font-medium">請假類型:</span> {getLeaveTypeText(event.leaveType, event.halfDayType)}</div>
+                               <div><span className="font-medium">排休類型:</span> {getLeaveTypeText(event.leaveType, event.halfDayType)}</div>
                                {event.startTime && event.endTime && (
                                  <div><span className="font-medium">時間:</span> {event.startTime} - {event.endTime}</div>
                                )}
@@ -410,7 +439,7 @@ const LeaveCalendar: React.FC<LeaveCalendarProps> = ({
                 ) : (
                   <div className="text-center py-8 text-gray-500">
                     <CalendarIcon className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                    <p>沒有請假資料</p>
+                    <p>沒有排休資料</p>
                   </div>
                 );
               })()}

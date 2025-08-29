@@ -44,8 +44,8 @@ export const authAPI = {
     return response.data;
   },
   
-  employeeAuth: async (employeeId: string): Promise<AuthResponse> => {
-    const response = await api.post('/auth/employee/auth', { employeeId });
+  employeeAuth: async (phone: string): Promise<AuthResponse> => {
+    const response = await api.post('/auth/employee/auth', { phone });
     return response.data;
   },
 };

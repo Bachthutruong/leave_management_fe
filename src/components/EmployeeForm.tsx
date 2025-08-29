@@ -4,20 +4,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Employee, Department, Position } from '@/types';
-import { departmentAPI, positionAPI } from '@/services/api';
-import { User, Building2, Mail, Phone, Calendar, Save, X, Plus } from 'lucide-react';
+import { Employee, Department } from '@/types';
+import { departmentAPI } from '@/services/api';
+import { User, Building2, Phone, Car, Save, X, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface EmployeeFormData {
-  employeeId: string;
+  phone: string;
   name: string;
   department: string;
-  position: string;
-  email: string;
-  phone: string;
+  licensePlate: string;
   status: 'active' | 'inactive';
-  joinDate: string;
 }
 
 interface EmployeeFormProps {
@@ -30,7 +27,6 @@ interface EmployeeFormProps {
 const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onSave, onCancel, mode }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [departments, setDepartments] = useState<Department[]>([]);
-  const [positions, setPositions] = useState<Position[]>([]);
   const [loadingData, setLoadingData] = useState(true);
 
   const {
@@ -41,14 +37,11 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onSave, onCancel,
     watch,
   } = useForm<EmployeeFormData>({
     defaultValues: {
-      employeeId: employee?.employeeId || '',
+      phone: employee?.phone || '',
       name: employee?.name || '',
       department: employee?.department || '',
-      position: employee?.position || '',
-      email: employee?.email || '',
-      phone: employee?.phone || '',
+      licensePlate: employee?.licensePlate || '',
       status: employee?.status || 'active',
-      joinDate: employee?.joinDate ? new Date(employee.joinDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
     },
   });
 
@@ -58,14 +51,10 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onSave, onCancel,
     const loadData = async () => {
       try {
         setLoadingData(true);
-        const [deptData, posData] = await Promise.all([
-          departmentAPI.getActive(),
-          positionAPI.getActive()
-        ]);
+        const deptData = await departmentAPI.getActive();
         setDepartments(deptData);
-        setPositions(posData);
       } catch (error) {
-        toast.error('載入部門和職位資料失敗');
+        toast.error('載入部門資料失敗');
       } finally {
         setLoadingData(false);
       }
@@ -93,7 +82,7 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onSave, onCancel,
           <div className="flex items-center justify-center py-8">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-2 text-gray-600">載入部門和職位資料中...</p>
+              <p className="mt-2 text-gray-600">載入部門資料中...</p>
             </div>
           </div>
         </CardContent>
@@ -114,20 +103,20 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onSave, onCancel,
       </CardHeader>
       <CardContent className="p-6">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          {/* Employee ID & Name */}
+          {/* Phone & Name */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
-                <User className="h-4 w-4 text-blue-600" />
-                <span>員工編號 *</span>
+                <Phone className="h-4 w-4 text-blue-600" />
+                <span>電話號碼 *</span>
               </label>
               <Input
-                {...register('employeeId', { required: '員工編號為必填項' })}
-                placeholder="NV001"
+                {...register('phone', { required: '電話號碼為必填項' })}
+                placeholder="0123456789"
                 className="border-blue-300 focus:border-blue-500 focus:ring-blue-500"
               />
-              {errors.employeeId && (
-                <p className="text-sm text-red-500">{errors.employeeId.message}</p>
+              {errors.phone && (
+                <p className="text-sm text-red-500">{errors.phone.message}</p>
               )}
             </div>
 
@@ -147,8 +136,23 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onSave, onCancel,
             </div>
           </div>
 
-          {/* Department & Position */}
+          {/* License Plate & Department */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+                <Car className="h-4 w-4 text-green-600" />
+                <span>車牌號碼 *</span>
+              </label>
+              <Input
+                {...register('licensePlate', { required: '車牌號碼為必填項' })}
+                placeholder="ABC-123"
+                className="border-green-300 focus:border-green-500 focus:ring-green-500"
+              />
+              {errors.licensePlate && (
+                <p className="text-sm text-red-500">{errors.licensePlate.message}</p>
+              )}
+            </div>
+
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
                 <Building2 className="h-4 w-4 text-green-600" />
@@ -168,106 +172,23 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onSave, onCancel,
                 <p className="text-sm text-red-500">{errors.department.message}</p>
               )}
             </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
-                <User className="h-4 w-4 text-purple-600" />
-                <span>職位 *</span>
-              </label>
-              <Select value={watch('position')} onValueChange={(value) => setValue('position', value)}>
-                <SelectTrigger className="border-purple-300 focus:border-purple-500 focus:ring-purple-500">
-                  <SelectValue placeholder="選擇職位" />
-                </SelectTrigger>
-                <SelectContent>
-                  {positions.map((pos) => (
-                    <SelectItem key={pos._id} value={pos.name}>{pos.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.position && (
-                <p className="text-sm text-red-500">{errors.position.message}</p>
-              )}
-            </div>
           </div>
 
-          {/* Contact Info */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
-                <Mail className="h-4 w-4 text-orange-600" />
-                <span>Email *</span>
-              </label>
-              <Input
-                {...register('email', { 
-                  required: '電子郵件為必填項',
-                  pattern: {
-                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                    message: '電子郵件格式無效'
-                  }
-                })}
-                type="email"
-                placeholder="example@company.com"
-                className="border-orange-300 focus:border-orange-500 focus:ring-orange-500"
-              />
-              {errors.email && (
-                <p className="text-sm text-red-500">{errors.email.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
-                <Phone className="h-4 w-4 text-teal-600" />
-                <span>電話號碼 *</span>
-              </label>
-              <Input
-                {...register('phone', { 
-                  required: '電話號碼為必填項',
-                  pattern: {
-                    value: /^[0-9+\-\s()]+$/,
-                    message: '電話號碼格式無效'
-                  }
-                })}
-                placeholder="0123456789"
-                className="border-teal-300 focus:border-teal-500 focus:ring-teal-500"
-              />
-              {errors.phone && (
-                <p className="text-sm text-red-500">{errors.phone.message}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Join Date & Status */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
-                <Calendar className="h-4 w-4 text-indigo-600" />
-                <span>入職日期 *</span> 
-              </label>
-              <Input
-                {...register('joinDate', { required: '入職日期為必填項' })}
-                type="date"
-                className="border-indigo-300 focus:border-indigo-500 focus:ring-indigo-500"
-              />
-              {errors.joinDate && (
-                <p className="text-sm text-red-500">{errors.joinDate.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
-                <div className={`w-3 h-3 rounded-full ${status === 'active' ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                <span>狀態 *</span> 
-              </label>
-              <Select value={status} onValueChange={(value: 'active' | 'inactive') => setValue('status', value)}>
-                <SelectTrigger className="border-gray-300 focus:border-gray-500 focus:ring-gray-500">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">在職</SelectItem>
-                  <SelectItem value="inactive">離職</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Status */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+              <div className={`w-3 h-3 rounded-full ${status === 'active' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+              <span>狀態 *</span> 
+            </label>
+            <Select value={status} onValueChange={(value: 'active' | 'inactive') => setValue('status', value)}>
+              <SelectTrigger className="border-gray-300 focus:border-gray-500 focus:ring-gray-500">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">在職</SelectItem>
+                <SelectItem value="inactive">離職</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Action Buttons */}

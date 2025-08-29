@@ -60,11 +60,14 @@ const LeaveRequestForm: React.FC = () => {
   }, []);
 
   const formatDate = useCallback((date: Date) => {
-    return date.toLocaleDateString('vi-VN', {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short'
-    });
+    const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+    const months = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+    
+    const weekday = weekdays[date.getDay()];
+    const day = date.getDate();
+    const month = months[date.getMonth()];
+    
+    return `${weekday}, ${day} ${month}`;
   }, []);
 
   const isWeekend = useCallback((date: Date) => {
@@ -155,7 +158,7 @@ const LeaveRequestForm: React.FC = () => {
       });
 
       await leaveRequestAPI.create(formData);
-      toast.success('請假申請已成功送出！');
+      toast.success('排休申請已成功送出！');
       
       // Reset form
       reset();
@@ -182,10 +185,10 @@ const LeaveRequestForm: React.FC = () => {
       <CardHeader className="bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-t-lg">
         <CardTitle className="flex items-center gap-3 text-xl">
           <CalendarDays className="h-6 w-6" />
-          申請請假
+          申請排休
         </CardTitle>
         <CardDescription className="text-green-100">
-          請填寫完整資訊以申請請假
+          請填寫完整資訊以申請排休
         </CardDescription>
       </CardHeader>
       
@@ -200,7 +203,7 @@ const LeaveRequestForm: React.FC = () => {
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-blue-700">員工編號:</span>  
               <span className="text-sm text-blue-600 bg-blue-100 px-2 py-1 rounded-md">
-                {employee?.employeeId}
+                {employee?.phone}
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -224,32 +227,32 @@ const LeaveRequestForm: React.FC = () => {
           <div className="space-y-3">
             <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
               <Calendar className="h-4 w-4 text-green-600" />
-              請假類型 <span className="text-red-500">*</span>
+              排休類型 <span className="text-red-500">*</span>
             </label>
             <Select
               value={leaveType}
               onValueChange={(value: 'full_day' | 'half_day' | 'hourly') => setValue('leaveType', value)}
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="選擇請假類型" />  
+                <SelectValue placeholder="選擇排休類型" />  
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="full_day">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                    全薪假  
+                    排休全天  
                   </div>
                 </SelectItem>
                 <SelectItem value="half_day">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-                    上午
+                    選時段排休
                   </div>
                 </SelectItem>
                 <SelectItem value="hourly">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                    下午
+                    自定時間排休
                   </div>
                 </SelectItem>
               </SelectContent>
@@ -260,14 +263,14 @@ const LeaveRequestForm: React.FC = () => {
           {leaveType === 'half_day' && (
             <div className="space-y-3">
               <label className="text-sm font-medium text-gray-700">
-                請假時段 <span className="text-red-500">*</span>
+                排休時段 <span className="text-red-500">*</span>
               </label>
               <Select
                 value={watch('halfDayType')}
                 onValueChange={(value: 'morning' | 'afternoon' | 'evening') => setValue('halfDayType', value)}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="選擇請假時段" />
+                  <SelectValue placeholder="選擇排休時段" />
                 </SelectTrigger>
                 <SelectContent>
                   {halfDayOptions.map((option) => (
@@ -319,9 +322,9 @@ const LeaveRequestForm: React.FC = () => {
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
                 <CalendarDays className="h-4 w-4 text-green-600" />
-                選擇請假日期 <span className="text-red-500">*</span>
+                選擇排休日期 <span className="text-red-500">*</span>
               </label>
-              <Button
+              {/* <Button
                 type="button"
                 variant="outline"
                 size="sm"
@@ -329,7 +332,7 @@ const LeaveRequestForm: React.FC = () => {
                 className="text-xs"
               >
                 {showMiniCalendar ? '隱藏日曆' : '顯示日曆'}
-              </Button>
+              </Button> */}
             </div>
             
             {/* Mini Calendar */}
@@ -346,7 +349,7 @@ const LeaveRequestForm: React.FC = () => {
             )}
             
             <div className="space-y-2">
-              <label className="text-xs text-gray-600">請假日期 *</label>
+              <label className="text-xs text-gray-600">排休日期 *</label>
               <Input
                 type="date"
                 {...register('leaveDate', { required: true })}
@@ -354,7 +357,7 @@ const LeaveRequestForm: React.FC = () => {
                 min={new Date().toISOString().split('T')[0]}
               />
               {errors.leaveDate && (
-                <p className="text-sm text-red-600">請選擇請假日期</p>
+                <p className="text-sm text-red-600">請選擇排休日期</p>
               )}
             </div>
 
@@ -395,9 +398,8 @@ const LeaveRequestForm: React.FC = () => {
                   ))}
                 </div>
                 <div className="mt-3 text-xs text-green-600">
-                  <span className="font-medium">總共:</span> 1 天
                   {selectedDates.filter(isWeekend).length > 0 && (
-                    <span className="ml-2">
+                    <span>
                       (週末)
                     </span>
                   )}
@@ -408,10 +410,10 @@ const LeaveRequestForm: React.FC = () => {
 
           {/* Reason */}
           <div className="space-y-3">
-            <label className="text-sm font-medium text-gray-700">請假原因 (可選)</label>
+            <label className="text-sm font-medium text-gray-700">排休原因 (可選)</label>
             <Textarea
               {...register('reason')}
-              placeholder="請輸入請假原因..."
+              placeholder="請輸入排休原因..."
               rows={3}
               className="w-full resize-none"
             />
@@ -505,7 +507,7 @@ const LeaveRequestForm: React.FC = () => {
             ) : (
               <div className="flex items-center gap-2">
                 <CalendarDays className="h-5 w-5" />
-                提交請假申請
+                提交排休申請
               </div>
             )}
           </Button>

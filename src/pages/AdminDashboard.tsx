@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import LeaveCalendar from '@/components/LeaveCalendar';
 import { useAuthStore } from '@/store/authStore';
 import { employeeAPI, leaveRequestAPI, halfDayOptionsAPI, departmentAPI } from '@/services/api';
 import { Employee, LeaveRequest, HalfDayOption, Department } from '@/types';
@@ -16,6 +17,7 @@ import {
   BarChart3, 
   Settings as SettingsIcon, 
   Plus, 
+  Table as TableIcon,
   Edit, 
   Trash2, 
   CheckCircle, 
@@ -26,7 +28,6 @@ import {
   User,
   // Mail,
   Phone,
-  // Calendar as CalendarIcon,
   FileText,
   Search,
   Filter,
@@ -68,6 +69,7 @@ const EmployeeManagement: React.FC = () => {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  // (removed) calendar filters here; calendar filters belong to LeaveManagement
 
   useEffect(() => {
     loadEmployees();
@@ -313,6 +315,7 @@ const EmployeeManagement: React.FC = () => {
                     <TableHead className="min-w-[200px]">員工姓名</TableHead>
                     <TableHead className="w-[150px]">車牌號碼</TableHead>
                     <TableHead className="w-[150px]">部門</TableHead>
+                    <TableHead className="w-[120px]">角色</TableHead>
                     <TableHead className="w-[120px]">狀態</TableHead> 
                     <TableHead className="w-[200px]">聯絡方式</TableHead>
                     <TableHead className="w-[120px] text-center">操作</TableHead>
@@ -334,6 +337,15 @@ const EmployeeManagement: React.FC = () => {
                       </TableCell>
                       <TableCell>{employee.licensePlate}</TableCell>
                       <TableCell>{employee.department}</TableCell>
+                      <TableCell>
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                          employee.role === 'department_head' 
+                            ? 'bg-purple-100 text-purple-800' 
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {employee.role === 'department_head' ? '部門主管' : '員工'}
+                        </span>
+                      </TableCell>
                       <TableCell>
                         <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                           employee.status === 'active' 
@@ -469,6 +481,7 @@ const LeaveManagement: React.FC = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [viewMode, setViewMode] = useState<'table' | 'calendar'>('table');
   const [showForm, setShowForm] = useState(false);
   const [editingLeave, setEditingLeave] = useState<LeaveRequest | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -479,6 +492,9 @@ const LeaveManagement: React.FC = () => {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  // Calendar filters in calendar view
+  const [calendarYear, setCalendarYear] = useState(new Date().getFullYear());
+  const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth() + 1);
   
   // Dialog states
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
@@ -668,9 +684,9 @@ const LeaveManagement: React.FC = () => {
   const getLeaveTypeText = (leaveType: string, halfDayType?: string) => {
     switch (leaveType) {
       case 'full_day':
-        return '排休全天';
+        return '排休/請假全天';
       case 'half_day':
-        return `半薪假 (${halfDayType === 'morning' ? '選時段排休' : halfDayType === 'afternoon' ? '自定時間排休' : '晚上'})`;
+        return `半薪假 (${halfDayType === 'morning' ? '選時段排休/請假' : halfDayType === 'afternoon' ? '自定時段排休/請假' : '晚上'})`;
       case 'hourly':
         return '自定時間休';
       default:
@@ -765,46 +781,71 @@ const LeaveManagement: React.FC = () => {
         </Button>
       </div>
 
-      {/* Search and Filter */}
+      {/* View Toggle + Search and Filter */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="搜尋員工姓名、部門..."
-            value={searchTerm}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-            className="pl-10 border-gray-300 focus:border-green-500 focus:ring-green-500"
-          />
-        </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex items-center gap-2">
           <Button
-            variant={filter === 'all' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setFilter('all')}
-            className={filter === 'all' ? 'bg-green-600 hover:bg-green-700' : ''}
+            variant={viewMode === 'table' ? 'default' : 'outline'}
+            onClick={() => setViewMode('table')}
+            className="flex items-center gap-2"
+            title="表格視圖"
           >
-            全部 ({leaveRequests.length})
+            <TableIcon className="h-4 w-4" />
+            <span>表格</span>
           </Button>
           <Button
-            variant={filter === 'pending' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setFilter('pending')}
-            className={filter === 'pending' ? 'bg-yellow-600 hover:bg-yellow-700' : ''}
+            variant={viewMode === 'calendar' ? 'default' : 'outline'}
+            onClick={() => setViewMode('calendar')}
+            className="flex items-center gap-2"
+            title="日曆視圖"
           >
-            待批准 ({leaveRequests.filter(r => r.status === 'pending').length})
-          </Button>
-          <Button
-            variant={filter === 'approved' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setFilter('approved')}
-            className={filter === 'approved' ? 'bg-green-600 hover:bg-green-700' : ''}
-          >
-            已批准 ({leaveRequests.filter(r => r.status === 'approved').length})
+            <Calendar className="h-4 w-4" />
+            <span>日曆</span>
           </Button>
         </div>
+        {viewMode === 'table' && (
+          <>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="搜尋員工姓名、部門..."
+                value={searchTerm}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+                className="pl-10 border-gray-300 focus:border-green-500 focus:ring-green-500"
+              />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant={filter === 'all' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setFilter('all')}
+                className={filter === 'all' ? 'bg-green-600 hover:bg-green-700' : ''}
+              >
+                全部 ({leaveRequests.length})
+              </Button>
+              <Button
+                variant={filter === 'pending' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setFilter('pending')}
+                className={filter === 'pending' ? 'bg-yellow-600 hover:bg-yellow-700' : ''}
+              >
+                待批准 ({leaveRequests.filter(r => r.status === 'pending').length})
+              </Button>
+              <Button
+                variant={filter === 'approved' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setFilter('approved')}
+                className={filter === 'approved' ? 'bg-green-600 hover:bg-green-700' : ''}
+              >
+                已批准 ({leaveRequests.filter(r => r.status === 'approved').length})
+              </Button>
+            </div>
+          </>
+        )}
       </div>
 
-      {/* Stats */}
+      {/* Stats - only in table view */}
+      {viewMode === 'table' && (
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
           <CardContent className="p-3 md:p-4">
@@ -860,8 +901,10 @@ const LeaveManagement: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+      )}
 
-      {/* Leave Requests Table */}
+      {/* Leave Requests Table / Calendar */}
+      {viewMode === 'table' ? (
       <Card>
         <CardContent className="p-0">
           {filteredRequests.length === 0 ? (
@@ -906,9 +949,9 @@ const LeaveManagement: React.FC = () => {
                             {request.startTime && request.endTime && (
                               <div className="text-xs text-muted-foreground">
                                 {request.startTime} - {request.endTime}
-                      </div>
-                    )}
-                  </div>
+                              </div>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>
                           {getStatusBadge(request.status)}
@@ -1069,6 +1112,42 @@ const LeaveManagement: React.FC = () => {
           )}
             </CardContent>
           </Card>
+
+      ) : (
+        <div className="mt-2 space-y-3">
+          <div className="flex flex-col sm:flex-row items-center justify-start gap-3">
+            <Select value={calendarYear.toString()} onValueChange={(value) => setCalendarYear(parseInt(value))}>
+              <SelectTrigger className="w-full sm:w-32 bg-white border-2 border-gray-300 hover:border-green-500 focus:border-green-500">
+                <SelectValue placeholder="選擇年份" />
+              </SelectTrigger>
+              <SelectContent>
+                {Array.from({ length: 50 }, (_, i) => 2000 + i).map(year => (
+                  <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={calendarMonth.toString()} onValueChange={(value) => setCalendarMonth(parseInt(value))}>
+              <SelectTrigger className="w-full sm:w-32 bg-white border-2 border-gray-300 hover:border-green-500 focus:border-green-500">
+                <SelectValue placeholder="選擇月份" />
+              </SelectTrigger>
+              <SelectContent>
+                {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
+                  <SelectItem key={month} value={month.toString()}>
+                    {getMonthName(month)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <LeaveCalendar 
+            selectedYear={calendarYear}
+            selectedMonth={calendarMonth}
+            onDateChange={(y, m) => { setCalendarYear(y); setCalendarMonth(m); }}
+          />
+        </div>
+      )}
 
       {/* Detail Modal */}
       {showDetailModal && selectedRequest && (
@@ -1585,7 +1664,7 @@ const Statistics: React.FC = () => {
                   <TableRow>
                     <TableHead className="w-[200px]">員工</TableHead>
                     <TableHead className="w-[150px]">部門</TableHead>
-                    <TableHead className="w-[100px] text-center">排休全天</TableHead>
+                    <TableHead className="w-[100px] text-center">排休/請假全天</TableHead>
                     <TableHead className="w-[100px] text-center">半薪假</TableHead> 
                     <TableHead className="w-[100px] text-center">小時假</TableHead>
                     <TableHead className="w-[100px] text-center">狀態</TableHead>
@@ -1642,8 +1721,8 @@ const Statistics: React.FC = () => {
                                 {formatDate(detail.startDate)} - {formatDate(detail.endDate)}
                               </div>
                               <div className="text-gray-600">
-                                {detail.leaveType === 'full_day' ? '排休全天' : 
-                                 detail.leaveType === 'half_day' ? `半薪假 (${detail.halfDayType === 'morning' ? '選時段排休' : '自定時間排休'})` : 
+                                {detail.leaveType === 'full_day' ? '排休/請假全天' : 
+                                 detail.leaveType === 'half_day' ? `半薪假 (${detail.halfDayType === 'morning' ? '選時段排休/請假' : '自定時段排休/請假'})` : 
                                  '小時假'}
                               </div>
                               <div className="text-gray-500 truncate" title={detail.reason}>
@@ -1785,7 +1864,7 @@ const Statistics: React.FC = () => {
                 <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-blue-600">排休全天</p>
+                      <p className="text-sm font-medium text-blue-600">排休/請假全天</p>
                       <p className="text-2xl font-bold text-blue-800">{selectedEmployee.fullDays.toFixed(1)}</p>
                     </div>
                     <Calendar className="h-8 w-8 text-blue-600" />
@@ -1845,8 +1924,8 @@ const Statistics: React.FC = () => {
                             <div>
                               <label className="text-sm font-medium text-gray-600">排休類型</label>  
                               <p className="text-sm text-gray-900">
-                                {detail.leaveType === 'full_day' ? '排休全天' : 
-                                 detail.leaveType === 'half_day' ? `半薪假 (${detail.halfDayType === 'morning' ? '選時段排休' : '自定時間排休'})` : 
+                                {detail.leaveType === 'full_day' ? '排休/請假全天' : 
+                                 detail.leaveType === 'half_day' ? `半薪假 (${detail.halfDayType === 'morning' ? '選時段排休/請假' : '自定時段排休/請假'})` : 
                                  '小時假'}
                               </p>
                             </div>
@@ -1900,7 +1979,7 @@ const Statistics: React.FC = () => {
           <CardContent className="p-3 md:p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs md:text-sm font-medium text-orange-600">排休全天</p>
+                <p className="text-xs md:text-sm font-medium text-orange-600">排休/請假全天</p>
                 <p className="text-lg md:text-2xl font-bold text-orange-800">
                   {statistics.reduce((sum, stat) => sum + (stat.fullDays || 0), 0)}
                 </p>
@@ -1942,7 +2021,7 @@ const Statistics: React.FC = () => {
                 <>
                   <div className="space-y-2 md:space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs md:text-sm font-medium text-gray-600">排休全天</span>
+                      <span className="text-xs md:text-sm font-medium text-gray-600">排休/請假全天</span>
                       <span className="text-xs md:text-sm font-medium text-blue-600">
                         {statistics.reduce((sum, stat) => sum + (stat.fullDays || 0), 0)}
                       </span>
@@ -2256,7 +2335,7 @@ const Statistics: React.FC = () => {
                       </div>
                       <div className="space-y-2">
                         <div className="flex items-center justify-between text-xs">
-                          <span className="text-gray-600">排休全天:</span>
+                          <span className="text-gray-600">排休/請假全天:</span>
                           <span className="font-medium text-blue-600">{deptData.fullDays.toFixed(1)}</span>
                         </div>
                         <div className="flex items-center justify-between text-xs">
@@ -2449,7 +2528,7 @@ const Statistics: React.FC = () => {
                       </span>
                     </div>
                                           <div className="text-xs text-gray-600">
-                        {formatDate(request.startDate)} - {request.leaveType === 'full_day' ? '排休全天' : request.leaveType === 'half_day' ? '半薪假' : '小時假'}
+                        {formatDate(request.startDate)} - {request.leaveType === 'full_day' ? '排休/請假全天' : request.leaveType === 'half_day' ? '半薪假' : '小時假'}
                       </div>
                   </div>
                 ));
@@ -2548,8 +2627,8 @@ const SettingsTab: React.FC = () => {
             {halfDayOptions.map((option) => (
               <div key={option._id} className="flex items-center space-x-4 p-4 bg-white rounded-lg border border-indigo-100 hover:shadow-md transition-shadow">
                 <div className="w-24 text-sm font-medium text-indigo-700">
-                  {option.code === 'morning' ? '選時段排休' : 
-                   option.code === 'afternoon' ? '自定時間排休' : '晚上'}
+                  {option.code === 'morning' ? '選時段排休/請假' : 
+                   option.code === 'afternoon' ? '自定時段排休/請假' : '晚上'}
                 </div>
                 
                 {editingOption === option._id ? (
@@ -2684,32 +2763,36 @@ const AdminDashboard: React.FC = () => {
       {/* Main Content */}
       <main className="w-full max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8">
         <Tabs defaultValue="leaves" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 h-auto p-1 bg-gray-100 rounded-xl gap-1">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 gap-2 bg-transparent p-0">
             <TabsTrigger 
               value="leaves" 
-              className="flex flex-col items-center justify-center space-y-1 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-green-600 rounded-lg transition-all duration-200 text-xs sm:text-sm py-3"
+              className="relative flex flex-col items-center justify-center space-y-1 rounded-full px-3 py-2 text-xs sm:text-sm font-semibold border border-green-200 bg-green-50 text-green-700 hover:bg-green-100 data-[state=active]:bg-green-600 data-[state=active]:text-white data-[state=active]:border-green-600 shadow-sm"
             >
+              <span className="hidden data-[state=active]:block absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-green-500 ring-2 ring-white"></span>
               <Calendar className="h-4 w-4 sm:h-5 sm:w-5" />
               <span className="text-xs">排休</span>
             </TabsTrigger>
             <TabsTrigger 
               value="statistics" 
-              className="flex flex-col items-center justify-center space-y-1 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-purple-600 rounded-lg transition-all duration-200 text-xs sm:text-sm py-3"
+              className="relative flex flex-col items-center justify-center space-y-1 rounded-full px-3 py-2 text-xs sm:text-sm font-semibold border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:border-purple-600 shadow-sm"
             >
+              <span className="hidden data-[state=active]:block absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-purple-500 ring-2 ring-white"></span>
               <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5" />
               <span className="text-xs">統計</span>
             </TabsTrigger>
             <TabsTrigger 
               value="employees" 
-              className="flex flex-col items-center justify-center space-y-1 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 rounded-lg transition-all duration-200 text-xs sm:text-sm py-3"
+              className="relative flex flex-col items-center justify-center space-y-1 rounded-full px-3 py-2 text-xs sm:text-sm font-semibold border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:border-blue-600 shadow-sm"
             >
+              <span className="hidden data-[state=active]:block absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-blue-500 ring-2 ring-white"></span>
               <Users className="h-4 w-4 sm:h-5 sm:w-5" />
               <span className="text-xs">員工</span>
             </TabsTrigger>
             <TabsTrigger 
               value="departments" 
-              className="flex flex-col items-center justify-center space-y-1 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-emerald-600 rounded-lg transition-all duration-200 text-xs sm:text-sm py-3"
+              className="relative flex flex-col items-center justify-center space-y-1 rounded-full px-3 py-2 text-xs sm:text-sm font-semibold border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:border-emerald-600 shadow-sm"
             >
+              <span className="hidden data-[state=active]:block absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white"></span>
               <Building2 className="h-4 w-4 sm:h-5 sm:w-5" />
               <span className="text-xs">部門</span>
             </TabsTrigger>
@@ -2722,8 +2805,9 @@ const AdminDashboard: React.FC = () => {
             </TabsTrigger> */}
             <TabsTrigger 
               value="settings" 
-              className="flex flex-col items-center justify-center space-y-1 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-indigo-600 rounded-lg transition-all duration-200 text-xs sm:text-sm py-3"
+              className="relative flex flex-col items-center justify-center space-y-1 rounded-full px-3 py-2 text-xs sm:text-sm font-semibold border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:border-indigo-600 shadow-sm"
             >
+              <span className="hidden data-[state=active]:block absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-indigo-500 ring-2 ring-white"></span>
                <SettingsIcon className="h-4 w-4 sm:h-5 sm:w-5" />
               <span className="text-xs">設定</span>
              </TabsTrigger>

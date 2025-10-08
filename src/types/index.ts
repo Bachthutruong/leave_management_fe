@@ -4,6 +4,7 @@ export interface Employee {
   name: string;
   department: string;
   licensePlate: string;
+  role?: 'employee' | 'department_head';
   status: 'active' | 'inactive';
   createdAt: string;
   updatedAt: string;

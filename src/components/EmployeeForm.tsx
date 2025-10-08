@@ -14,6 +14,7 @@ interface EmployeeFormData {
   name: string;
   department: string;
   licensePlate: string;
+  role?: 'employee' | 'department_head';
   status: 'active' | 'inactive';
 }
 
@@ -41,11 +42,13 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onSave, onCancel,
       name: employee?.name || '',
       department: employee?.department || '',
       licensePlate: employee?.licensePlate || '',
+      role: employee?.role || 'employee',
       status: employee?.status || 'active',
     },
   });
 
   const status = watch('status');
+  const role = watch('role');
 
   useEffect(() => {
     const loadData = async () => {
@@ -174,21 +177,39 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onSave, onCancel,
             </div>
           </div>
 
-          {/* Status */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
-              <div className={`w-3 h-3 rounded-full ${status === 'active' ? 'bg-green-500' : 'bg-red-500'}`}></div>
-              <span>狀態 *</span> 
-            </label>
-            <Select value={status} onValueChange={(value: 'active' | 'inactive') => setValue('status', value)}>
-              <SelectTrigger className="border-gray-300 focus:border-gray-500 focus:ring-gray-500">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="active">在職</SelectItem>
-                <SelectItem value="inactive">離職</SelectItem>
-              </SelectContent>
-            </Select>
+          {/* Role & Status */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+                <User className="h-4 w-4 text-purple-600" />
+                <span>角色 *</span>
+              </label>
+              <Select value={role} onValueChange={(value: 'employee' | 'department_head') => setValue('role', value)}>
+                <SelectTrigger className="border-purple-300 focus:border-purple-500 focus:ring-purple-500">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="employee">員工</SelectItem>
+                  <SelectItem value="department_head">部門主管</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+                <div className={`w-3 h-3 rounded-full ${status === 'active' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                <span>狀態 *</span> 
+              </label>
+              <Select value={status} onValueChange={(value: 'active' | 'inactive') => setValue('status', value)}>
+                <SelectTrigger className="border-gray-300 focus:border-gray-500 focus:ring-gray-500">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">在職</SelectItem>
+                  <SelectItem value="inactive">離職</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Action Buttons */}

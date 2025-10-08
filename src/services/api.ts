@@ -93,6 +93,11 @@ export const leaveRequestAPI = {
     const response = await api.get('/leave-requests/my-requests');
     return response.data;
   },
+  // Department head company list (same as admin list)
+  getCompanyListAsDeptHead: async (filters?: any): Promise<LeaveRequest[]> => {
+    const response = await api.get('/leave-requests/list/company', { params: filters });
+    return response.data;
+  },
   
   getById: async (id: string): Promise<LeaveRequest> => {
     const response = await api.get(`/leave-requests/${id}`);
@@ -118,6 +123,13 @@ export const leaveRequestAPI = {
     const response = await api.put(`/leave-requests/${id}`, updateData);
     return response.data;
   },
+  // Employee updates own request (can attach files)
+  updateMy: async (id: string, formData: FormData): Promise<LeaveRequest> => {
+    const response = await api.put(`/leave-requests/my/${id}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
   
   delete: async (id: string): Promise<void> => {
     await api.delete(`/leave-requests/${id}`);
@@ -134,7 +146,7 @@ export const leaveRequestAPI = {
     }
     
     try {
-      const response = await api.get('/leave-requests/calendar/company', {
+      const response = await api.get('/leave-requests/calendar/company-admin', {
         params: { year, month }
       });
       
@@ -144,6 +156,18 @@ export const leaveRequestAPI = {
       console.error('Calendar API error:', error);
       throw error;
     }
+  },
+  // Department head calendar (sees all statuses)
+  getDeptHeadCalendar: async (year?: number, month?: number): Promise<CalendarEvent[]> => {
+    const response = await api.get('/leave-requests/calendar/company', { params: { year, month } });
+    return response.data;
+  },
+  // Personal calendar (employee only)
+  getMyCalendar: async (year?: number, month?: number): Promise<CalendarEvent[]> => {
+    const response = await api.get('/leave-requests/calendar/my', {
+      params: { year, month }
+    });
+    return response.data;
   },
   
   getStatistics: async (period: 'month' | 'quarter' | 'year', value?: number): Promise<LeaveStatistics[]> => {

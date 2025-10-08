@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 
 import { leaveRequestAPI } from '@/services/api';
 import { CalendarEvent } from '@/types';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, RefreshCw, Smartphone, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, RefreshCw, Smartphone, X, CheckCircle, XCircle } from 'lucide-react';
 import { getMonthName } from '@/lib/dateUtils';
+import { useAuthStore } from '@/store/authStore';
 
 interface LeaveCalendarProps {
   selectedYear?: number;
@@ -26,6 +27,8 @@ const LeaveCalendar: React.FC<LeaveCalendarProps> = ({
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [isMobileView, setIsMobileView] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // Detect mobile view
   useEffect(() => {
@@ -36,6 +39,15 @@ const LeaveCalendar: React.FC<LeaveCalendarProps> = ({
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Check if user is admin or department head
+  useEffect(() => {
+    const userType = useAuthStore.getState().userType;
+    const user = useAuthStore.getState().user;
+    const isAdmin = userType === 'admin';
+    const isDepartmentHead = userType === 'employee' && (user as any)?.role === 'department_head';
+    setIsAdmin(isAdmin || isDepartmentHead);
   }, []);
 
   // Custom CSS styles for calendar events
@@ -83,7 +95,18 @@ const LeaveCalendar: React.FC<LeaveCalendarProps> = ({
       }
       
       console.log('Fetching calendar for:', { year, month });
-      const data = await leaveRequestAPI.getCompanyCalendar(year, month);
+      const userType = useAuthStore.getState().userType;
+      const user = useAuthStore.getState().user;
+      
+      // Admin sees company calendar, department heads see company calendar, regular employees see personal calendar
+      const isAdmin = userType === 'admin';
+      const isDepartmentHead = userType === 'employee' && (user as any)?.role === 'department_head';
+      
+      const data = await (isAdmin
+        ? leaveRequestAPI.getCompanyCalendar(year, month)
+        : isDepartmentHead
+        ? leaveRequestAPI.getDeptHeadCalendar(year, month)
+        : leaveRequestAPI.getMyCalendar(year, month));
       console.log('Calendar data received:', data);
       
       // Ensure data is in correct format
@@ -108,6 +131,37 @@ const LeaveCalendar: React.FC<LeaveCalendarProps> = ({
     }
   };
 
+  // Fetch pending requests for admin actions
+  const fetchPendingRequests = async () => {
+    if (!isAdmin) return;
+    try {
+      const data = await leaveRequestAPI.getAll({ status: 'pending' });
+      setPendingRequests(data);
+    } catch (error) {
+      console.error('Error fetching pending requests:', error);
+    }
+  };
+
+  const handleApprove = async (requestId: string) => {
+    try {
+      await leaveRequestAPI.update(requestId, { status: 'approved' });
+      fetchEvents();
+      fetchPendingRequests();
+    } catch (error) {
+      console.error('Error approving request:', error);
+    }
+  };
+
+  const handleReject = async (requestId: string) => {
+    try {
+      await leaveRequestAPI.update(requestId, { status: 'rejected', rejectionReason: 'Rejected from calendar view' });
+      fetchEvents();
+      fetchPendingRequests();
+    } catch (error) {
+      console.error('Error rejecting request:', error);
+    }
+  };
+
   // Update currentDate when props change
   useEffect(() => {
     if (selectedYear && selectedMonth) {
@@ -118,6 +172,7 @@ const LeaveCalendar: React.FC<LeaveCalendarProps> = ({
 
   useEffect(() => {
     fetchEvents();
+    fetchPendingRequests();
     
     // Listen for leave request submission to refresh calendar
     const handleLeaveRequestSubmitted = () => {
@@ -156,6 +211,16 @@ const LeaveCalendar: React.FC<LeaveCalendarProps> = ({
     return dayEvent ? dayEvent.events : [];
   };
 
+  // Get pending requests for a specific day
+  const getPendingRequestsForDay = (date: Date) => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    return pendingRequests.filter(request => {
+      const startDate = format(new Date(request.startDate), 'yyyy-MM-dd');
+      const endDate = format(new Date(request.endDate), 'yyyy-MM-dd');
+      return dateStr >= startDate && dateStr <= endDate;
+    });
+  };
+
   // Get events for display (limit to 2 per day)
   const getDisplayEventsForDay = (date: Date) => {
     const dayEvents = getEventsForDay(date);
@@ -189,9 +254,9 @@ const LeaveCalendar: React.FC<LeaveCalendarProps> = ({
         return '全天假';
       case 'half_day':
         return halfDayType === 'morning' 
-          ? '選時段排休' 
+          ? '選時段排休/請假' 
           : halfDayType === 'afternoon'
-          ? '自定時間排休'
+          ? '自定時段排休/請假'
           : '晚上';
       case 'hourly':
         return '時假';
@@ -370,15 +435,15 @@ const LeaveCalendar: React.FC<LeaveCalendarProps> = ({
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
             <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
               <div className="w-3 h-3 sm:w-4 sm:h-4 bg-red-500 rounded-full shadow-md"></div>
-              <span className="text-xs sm:text-sm font-medium text-gray-700">排休全天</span>
+              <span className="text-xs sm:text-sm font-medium text-gray-700">排休/請假全天</span>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
               <div className="w-3 h-3 sm:w-4 sm:h-4 bg-orange-500 rounded-full shadow-md"></div>
-              <span className="text-xs sm:text-sm font-medium text-gray-700">選時段排休</span>
+              <span className="text-xs sm:text-sm font-medium text-gray-700">選時段排休/請假</span>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
               <div className="w-3 h-3 sm:w-4 sm:h-4 bg-yellow-500 rounded-full shadow-md"></div>
-              <span className="text-xs sm:text-sm font-medium text-gray-700">自定時間排休</span>
+              <span className="text-xs sm:text-sm font-medium text-gray-700">自定時段排休/請假</span>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
               <div className="w-3 h-3 sm:w-4 sm:h-4 bg-blue-500 rounded-full shadow-md"></div>
@@ -411,7 +476,12 @@ const LeaveCalendar: React.FC<LeaveCalendarProps> = ({
                 const dayEvents = getEventsForDay(new Date(openDropdown));
                 return dayEvents.length > 0 ? (
                   <div className="space-y-4">
-                    {dayEvents.map((event, index) => (
+                    {dayEvents.map((event, index) => {
+                      const pendingForThisEvent = getPendingRequestsForDay(new Date(openDropdown)).find(req => 
+                        req.employeeName === event.employeeName && req.phone === event.phone
+                      );
+                      
+                      return (
                       <div
                         key={index}
                         className="p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
@@ -429,12 +499,34 @@ const LeaveCalendar: React.FC<LeaveCalendarProps> = ({
                                )}
                              </div>
                           </div>
-                          <div className={`text-sm px-3 py-2 rounded-full shrink-0 font-medium ${getLeaveTypeColor(event.leaveType, event.halfDayType)}`}>
-                            {getLeaveTypeText(event.leaveType, event.halfDayType)}
+                          <div className="flex flex-col items-end gap-2">
+                            <div className={`text-sm px-3 py-2 rounded-full shrink-0 font-medium ${getLeaveTypeColor(event.leaveType, event.halfDayType)}`}>
+                              {getLeaveTypeText(event.leaveType, event.halfDayType)}
+                            </div>
+                            {isAdmin && pendingForThisEvent && (
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleApprove(pendingForThisEvent._id)}
+                                  className="bg-green-600 hover:bg-green-700 text-white"
+                                >
+                                  <CheckCircle className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleReject(pendingForThisEvent._id)}
+                                  className="border-red-300 text-red-600 hover:bg-red-50"
+                                >
+                                  <XCircle className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="text-center py-8 text-gray-500">

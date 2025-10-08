@@ -240,19 +240,19 @@ const LeaveRequestForm: React.FC = () => {
                 <SelectItem value="full_day">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                    排休全天  
+                    排休/請假全天  
                   </div>
                 </SelectItem>
                 <SelectItem value="half_day">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-                    選時段排休
+                    選時段排休/請假
                   </div>
                 </SelectItem>
                 <SelectItem value="hourly">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                    自定時間排休
+                    自定時段排休/請假
                   </div>
                 </SelectItem>
               </SelectContent>

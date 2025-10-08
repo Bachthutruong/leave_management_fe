@@ -508,9 +508,9 @@ const AdminLeaveForm = forwardRef<AdminLeaveFormRef, AdminLeaveFormProps>(({
                 <SelectValue placeholder="選擇排休類型" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="full_day">排休全天</SelectItem>
-                <SelectItem value="half_day">選時段排休</SelectItem>
-                <SelectItem value="half_day">自定時間排休</SelectItem>
+                <SelectItem value="full_day">排休/請假全天</SelectItem>
+                <SelectItem value="half_day">選時段排休/請假</SelectItem>
+                <SelectItem value="half_day">自定時段排休/請假</SelectItem>
                 <SelectItem value="hourly">自定時間休</SelectItem>
               </SelectContent>
             </Select>

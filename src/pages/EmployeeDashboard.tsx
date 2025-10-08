@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
@@ -56,11 +57,34 @@ const EmployeeDashboard: React.FC = () => {
   // Detail modal state
   const [selectedRequest, setSelectedRequest] = useState<LeaveRequest | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  // Edit-my-request modal state
+  const [editMyModalOpen, setEditMyModalOpen] = useState(false);
+  const [editingMyRequest, setEditingMyRequest] = useState<LeaveRequest | null>(null);
+  const [editLeaveType, setEditLeaveType] = useState<'full_day' | 'half_day' | 'hourly'>('full_day');
+  const [editHalfDayType, setEditHalfDayType] = useState<'morning' | 'afternoon' | 'evening' | undefined>(undefined);
+  const [editStartDate, setEditStartDate] = useState<string>('');
+  const [editEndDate, setEditEndDate] = useState<string>('');
+  const [editStartTime, setEditStartTime] = useState<string>('');
+  const [editEndTime, setEditEndTime] = useState<string>('');
+  const [editReason, setEditReason] = useState<string>('');
+  const [editNewFiles, setEditNewFiles] = useState<File[]>([]);
+  const [editRemovePublicIds, setEditRemovePublicIds] = useState<string[]>([]);
+  const [editReplaceAttachments, setEditReplaceAttachments] = useState<boolean>(false);
+  const [newFilePreviews, setNewFilePreviews] = useState<string[]>([]);
+
+  const isImage = (mimeOrName?: string) => {
+    if (!mimeOrName) return false;
+    const lower = mimeOrName.toLowerCase();
+    return lower.startsWith('image/') || /\.(png|jpe?g|gif|webp|bmp|svg)$/.test(lower);
+  };
 
   const fetchMyRequests = async () => {
     setIsLoading(true);
     try {
-      const data = await leaveRequestAPI.getMyRequests();
+      const isDepartmentHead = (user as any)?.role === 'department_head';
+      const data = isDepartmentHead
+        ? await leaveRequestAPI.getCompanyListAsDeptHead()
+        : await leaveRequestAPI.getMyRequests();
       setMyRequests(data);
     } catch (error) {
       console.error('Error fetching my requests:', error);
@@ -123,11 +147,76 @@ const EmployeeDashboard: React.FC = () => {
       case 'full_day':
         return '全天假';
       case 'half_day':
-        return `半天假 (${halfDayType === 'morning' ? '選時段排休' : halfDayType === 'afternoon' ? '自定時間排休' : '晚上'})`;
+        return `半天假 (${halfDayType === 'morning' ? '選時段排休/請假' : halfDayType === 'afternoon' ? '自定時段排休/請假' : '晚上'})`;
       case 'hourly':
         return '時假';
       default:
         return '排休';
+    }
+  };
+
+  const canEditMyRequest = (req: LeaveRequest) => {
+    return req.status === 'pending' && req.phone === (user as Employee)?.phone;
+  };
+
+  const openEditMyModal = (req: LeaveRequest) => {
+    setEditingMyRequest(req);
+    setEditLeaveType(req.leaveType);
+    setEditHalfDayType(req.halfDayType);
+    setEditStartDate(req.startDate?.slice(0, 10));
+    setEditEndDate(req.endDate?.slice(0, 10));
+    setEditStartTime(req.startTime || '');
+    setEditEndTime(req.endTime || '');
+    setEditReason(req.reason || '');
+    setEditNewFiles([]);
+    setEditRemovePublicIds([]);
+    setEditReplaceAttachments(false);
+    setEditMyModalOpen(true);
+  };
+
+  const onEditFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    setEditNewFiles(prev => [...prev, ...files]);
+  };
+
+  useEffect(() => {
+    const urls = editNewFiles.map(f => URL.createObjectURL(f));
+    setNewFilePreviews(urls);
+    return () => {
+      urls.forEach(u => URL.revokeObjectURL(u));
+    };
+  }, [editNewFiles]);
+
+  const removeNewFileAt = (idx: number) => {
+    setEditNewFiles(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const toggleRemoveAttachment = (publicId: string) => {
+    setEditRemovePublicIds(prev => prev.includes(publicId) ? prev.filter(id => id !== publicId) : [...prev, publicId]);
+  };
+
+  const submitEditMyRequest = async () => {
+    if (!editingMyRequest) return;
+    const fd = new FormData();
+    fd.append('leaveType', editLeaveType);
+    if (editLeaveType === 'half_day' && editHalfDayType) fd.append('halfDayType', editHalfDayType);
+    fd.append('startDate', editStartDate || editingMyRequest.startDate);
+    fd.append('endDate', editEndDate || editingMyRequest.endDate);
+    if (editLeaveType === 'hourly') {
+      if (editStartTime) fd.append('startTime', editStartTime);
+      if (editEndTime) fd.append('endTime', editEndTime);
+    }
+    if (editReason !== undefined) fd.append('reason', editReason);
+    if (editRemovePublicIds.length > 0) fd.append('removePublicIds', JSON.stringify(editRemovePublicIds));
+    fd.append('replaceAttachments', editReplaceAttachments ? 'true' : 'false');
+    editNewFiles.forEach(f => fd.append('attachments', f));
+    try {
+      await leaveRequestAPI.updateMy(editingMyRequest._id, fd);
+      setEditMyModalOpen(false);
+      setEditingMyRequest(null);
+      fetchMyRequests();
+      window.dispatchEvent(new CustomEvent('leaveRequestSubmitted'));
+    } catch (e) {
     }
   };
 
@@ -309,25 +398,28 @@ const EmployeeDashboard: React.FC = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="calendar" className="space-y-4 sm:space-y-6">
-          <TabsList className="grid w-full grid-cols-3 h-auto p-1 bg-gray-100 rounded-xl gap-1">
-            <TabsTrigger 
-              value="calendar" 
-              className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 rounded-lg transition-all duration-200 text-sm sm:text-lg py-2"
+          <TabsList className="grid w-full grid-cols-3 gap-2 bg-transparent p-0">
+            <TabsTrigger
+              value="calendar"
+              className="relative rounded-full px-4 py-2 text-sm font-semibold border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:border-blue-600 shadow-sm"
             >
+              <span className="hidden data-[state=active]:block absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-blue-500 ring-2 ring-white"></span>
               <span className="hidden xs:inline">排休日曆</span>
               <span className="xs:hidden">日曆</span>
             </TabsTrigger>
-            <TabsTrigger 
-              value="request" 
-              className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-green-600 rounded-lg transition-all duration-200 text-sm sm:text-lg py-2"
+            <TabsTrigger
+              value="request"
+              className="relative rounded-full px-4 py-2 text-sm font-semibold border border-green-200 bg-green-50 text-green-700 hover:bg-green-100 data-[state=active]:bg-green-600 data-[state=active]:text-white data-[state=active]:border-green-600 shadow-sm"
             >
+              <span className="hidden data-[state=active]:block absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-green-500 ring-2 ring-white"></span>
               <span className="hidden xs:inline">申請排休</span>
               <span className="xs:hidden">申請</span>
             </TabsTrigger>
-            <TabsTrigger 
-              value="history" 
-              className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-purple-600 rounded-lg transition-all duration-200 text-sm sm:text-lg py-2"
+            <TabsTrigger
+              value="history"
+              className="relative rounded-full px-4 py-2 text-sm font-semibold border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:border-purple-600 shadow-sm"
             >
+              <span className="hidden data-[state=active]:block absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-purple-500 ring-2 ring-white"></span>
               <span className="hidden xs:inline">申請歷史</span>
               <span className="xs:hidden">歷史</span>
             </TabsTrigger>
@@ -424,6 +516,7 @@ const EmployeeDashboard: React.FC = () => {
                             <TableHead className="max-w-xs">原因</TableHead>
                             <TableHead className="w-[120px]">狀態</TableHead>
                             <TableHead className="w-[100px]">文件</TableHead>
+                            <TableHead className="w-[100px]">操作</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -470,6 +563,13 @@ const EmployeeDashboard: React.FC = () => {
                                     </div>
                                   ) : (
                                     <div className="text-sm text-muted-foreground">無</div>
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  {canEditMyRequest(request) && (
+                                    <Button size="sm" variant="outline" onClick={(ev) => { ev.stopPropagation(); openEditMyModal(request); }}>
+                                      編輯
+                                    </Button>
                                   )}
                                 </TableCell>
                               </TableRow>
@@ -564,6 +664,136 @@ const EmployeeDashboard: React.FC = () => {
         </Tabs>
       </main>
       
+      {/* Edit My Request Modal */}
+      {editMyModalOpen && editingMyRequest && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="text-lg font-semibold">編輯我的排休（僅限待核准）</h3>
+              <Button variant="ghost" size="sm" onClick={() => setEditMyModalOpen(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm font-medium">排休類型</label>
+                  <Select value={editLeaveType} onValueChange={(v) => setEditLeaveType(v as any)}>
+                    <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="full_day">排休/請假全天</SelectItem>
+                      <SelectItem value="half_day">半薪假</SelectItem>
+                      <SelectItem value="hourly">自定時間休</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {editLeaveType === 'half_day' && (
+                  <div>
+                    <label className="text-sm font-medium">時段</label>
+                    <Select value={editHalfDayType} onValueChange={(v) => setEditHalfDayType(v as any)}>
+                      <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="morning">選時段排休/請假</SelectItem>
+                        <SelectItem value="afternoon">自定時段排休/請假</SelectItem>
+                        <SelectItem value="evening">晚上</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm font-medium">開始日期</label>
+                  <Input type="date" value={editStartDate} onChange={(e) => setEditStartDate(e.target.value)} />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">結束日期</label>
+                  <Input type="date" value={editEndDate} onChange={(e) => setEditEndDate(e.target.value)} />
+                </div>
+              </div>
+
+              {editLeaveType === 'hourly' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-sm font-medium">開始時間</label>
+                    <Input type="time" value={editStartTime} onChange={(e) => setEditStartTime(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">結束時間</label>
+                    <Input type="time" value={editEndTime} onChange={(e) => setEditEndTime(e.target.value)} />
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className="text-sm font-medium">原因</label>
+                <Textarea value={editReason} onChange={(e) => setEditReason(e.target.value)} rows={3} />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">附件</label>
+                {editingMyRequest.attachments && editingMyRequest.attachments.length > 0 && (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                    {editingMyRequest.attachments.map((att) => (
+                      <div key={att.publicId} className="relative border rounded overflow-hidden">
+                        {isImage(att.mimetype || att.originalName) ? (
+                          <img src={att.url} alt={att.originalName || att.publicId} className="w-full h-20 object-cover" />
+                        ) : (
+                          <div className="w-full h-20 flex items-center justify-center text-xs text-gray-600 bg-gray-50">
+                            <FileText className="h-4 w-4 mr-1" /> 檔案
+                          </div>
+                        )}
+                        <a href={att.url} target="_blank" rel="noreferrer" className="absolute left-1 bottom-1 text-[10px] bg-white/80 px-1 rounded border">
+                          檢視
+                        </a>
+                        <label className="absolute right-1 top-1 text-[10px] bg-white/90 px-1 rounded border text-red-600 cursor-pointer">
+                          <input type="checkbox" className="mr-1 accent-red-600" checked={editRemovePublicIds.includes(att.publicId)} onChange={() => toggleRemoveAttachment(att.publicId)} />移除
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="border-2 border-dashed p-3 rounded">
+                  <input type="file" multiple onChange={onEditFilesChange} className="hidden" id="edit-upload" />
+                  <label htmlFor="edit-upload" className="text-xs text-gray-600 cursor-pointer">新增文件</label>
+                </div>
+                {editNewFiles.length > 0 && (
+                  <div className="space-y-1">
+                    <div className="text-xs text-gray-700">將新增 {editNewFiles.length} 檔</div>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                      {editNewFiles.map((f, idx) => (
+                        <div key={idx} className="relative border rounded overflow-hidden">
+                          {isImage(f.type || f.name) ? (
+                            <img src={newFilePreviews[idx]} alt={f.name} className="w-full h-20 object-cover" />
+                          ) : (
+                            <div className="w-full h-20 flex items-center justify-center text-xs text-gray-600 bg-gray-50">
+                              <FileText className="h-4 w-4 mr-1" /> {f.name}
+                            </div>
+                          )}
+                          <button type="button" onClick={() => removeNewFileAt(idx)} className="absolute right-1 top-1 text-[10px] bg-white/90 px-1 rounded border text-red-600">
+                            移除
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <label className="flex items-center gap-2 text-xs">
+                  <input type="checkbox" className="accent-blue-600" checked={editReplaceAttachments} onChange={(e) => setEditReplaceAttachments(e.target.checked)} />
+                  以新文件取代所有舊文件
+                </label>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="outline" onClick={() => setEditMyModalOpen(false)}>取消</Button>
+                <Button onClick={submitEditMyRequest} className="bg-green-600 hover:bg-green-700 text-white">保存</Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Detail Modal */}
       {showDetailModal && selectedRequest && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">

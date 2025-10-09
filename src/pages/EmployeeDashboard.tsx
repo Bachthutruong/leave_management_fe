@@ -412,15 +412,15 @@ const EmployeeDashboard: React.FC = () => {
               className="relative rounded-full px-4 py-2 text-sm font-semibold border border-green-200 bg-green-50 text-green-700 hover:bg-green-100 data-[state=active]:bg-green-600 data-[state=active]:text-white data-[state=active]:border-green-600 shadow-sm"
             >
               <span className="hidden data-[state=active]:block absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-green-500 ring-2 ring-white"></span>
-              <span className="hidden xs:inline">申請排休</span>
-              <span className="xs:hidden">申請</span>
+              <span className="hidden xs:inline">建立排休/請假排休</span>
+              <span className="xs:hidden">建立排休/請假</span>
             </TabsTrigger>
             <TabsTrigger
               value="history"
               className="relative rounded-full px-4 py-2 text-sm font-semibold border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:border-purple-600 shadow-sm"
             >
               <span className="hidden data-[state=active]:block absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-purple-500 ring-2 ring-white"></span>
-              <span className="hidden xs:inline">申請歷史</span>
+              <span className="hidden xs:inline">建立排休/請假歷史</span>
               <span className="xs:hidden">歷史</span>
             </TabsTrigger>
           </TabsList>
@@ -449,9 +449,9 @@ const EmployeeDashboard: React.FC = () => {
           <TabsContent value="history" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>排休申請歷史</CardTitle>
+                <CardTitle>排休建立排休/請假歷史</CardTitle>
                 <CardDescription>
-                  查看您的所有排休申請
+                  查看您的所有排休建立排休/請假
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -502,7 +502,7 @@ const EmployeeDashboard: React.FC = () => {
                 ) : filteredRequests.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <FileText className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                    <p>{selectedYear} - {getMonthName(selectedMonth)} 沒有排休申請</p>
+                    <p>{selectedYear} - {getMonthName(selectedMonth)} 沒有排休建立排休/請假</p>
                     <p className="text-sm mt-2">請嘗試選擇其他時間或檢查篩選條件</p>
                   </div>
                 ) : (
@@ -604,7 +604,7 @@ const EmployeeDashboard: React.FC = () => {
                             <SelectItem value="50">50</SelectItem>
                           </SelectContent>
                         </Select>
-                        <span>共 {totalItems} 個申請</span>
+                        <span>共 {totalItems} 個建立排休/請假</span>
                       </div>
                       
                       <div className="flex items-center gap-2">
@@ -799,7 +799,7 @@ const EmployeeDashboard: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b">
-              <h2 className="text-xl font-semibold">排休申請詳情</h2>
+              <h2 className="text-xl font-semibold">排休建立排休/請假詳情</h2>
               <Button variant="ghost" size="sm" onClick={closeDetailModal}>
                 <X className="h-4 w-4" />
               </Button>

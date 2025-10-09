@@ -343,7 +343,7 @@ const EmployeeManagement: React.FC = () => {
                             ? 'bg-purple-100 text-purple-800' 
                             : 'bg-gray-100 text-gray-800'
                         }`}>
-                          {employee.role === 'department_head' ? '部門主管' : '員工'}
+                          {employee.role === 'department_head' ? '隊長' : '員工'}
                         </span>
                       </TableCell>
                       <TableCell>
@@ -768,9 +768,9 @@ const LeaveManagement: React.FC = () => {
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div>
           <h2 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-            管理排休申請
+            管理排休建立排休/請假
           </h2>
-          <p className="text-gray-600 mt-1">批准和監控員工的排休申請</p>
+          <p className="text-gray-600 mt-1">批准和監控員工的排休建立排休/請假</p>
         </div>
         <Button
           onClick={() => setShowForm(true)}
@@ -910,7 +910,7 @@ const LeaveManagement: React.FC = () => {
           {filteredRequests.length === 0 ? (
             <div className="text-center py-12">
               <FileText className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-              <p className="text-gray-500">找不到排休申請</p>
+              <p className="text-gray-500">找不到排休建立排休/請假</p>
             </div>
           ) : (
             <>
@@ -1322,7 +1322,7 @@ const LeaveManagement: React.FC = () => {
       <PromptDialog
         open={rejectDialogOpen}
         onOpenChange={setRejectDialogOpen}
-        title="拒絕排休申請"
+        title="拒絕排休建立排休/請假"
         description="請輸入拒絕原因:"
         placeholder="請輸入拒絕原因..."
         onConfirm={confirmReject}
@@ -1335,8 +1335,8 @@ const LeaveManagement: React.FC = () => {
       <ConfirmDialog
         open={deleteConfirmOpen}
         onOpenChange={setDeleteConfirmOpen}
-        title="確認刪除排休申請"
-        description={`確認刪除排休申請 "${requestToDelete?.employeeName}" 嗎? 此操作無法撤銷.`}
+        title="確認刪除排休建立排休/請假"
+        description={`確認刪除排休建立排休/請假 "${requestToDelete?.employeeName}" 嗎? 此操作無法撤銷.`}
         onConfirm={confirmDeleteRequest}
         variant="destructive"
         confirmText="刪除"

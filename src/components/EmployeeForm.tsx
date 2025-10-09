@@ -190,7 +190,7 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onSave, onCancel,
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="employee">員工</SelectItem>
-                  <SelectItem value="department_head">部門主管</SelectItem>
+                  <SelectItem value="department_head">隊長</SelectItem>
                 </SelectContent>
               </Select>
             </div>

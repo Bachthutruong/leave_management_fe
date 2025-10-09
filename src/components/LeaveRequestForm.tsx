@@ -158,7 +158,7 @@ const LeaveRequestForm: React.FC = () => {
       });
 
       await leaveRequestAPI.create(formData);
-      toast.success('排休申請已成功送出！');
+      toast.success('排休建立排休/請假已成功送出！');
       
       // Reset form
       reset();
@@ -169,7 +169,7 @@ const LeaveRequestForm: React.FC = () => {
       // Trigger refresh of parent components
       window.dispatchEvent(new CustomEvent('leaveRequestSubmitted'));
     } catch (error: any) {
-      const message = error.response?.data?.message || '送出申請失敗！';
+      const message = error.response?.data?.message || '送出建立排休/請假失敗！';
       toast.error(message);
     } finally {
       setIsLoading(false);
@@ -185,10 +185,10 @@ const LeaveRequestForm: React.FC = () => {
       <CardHeader className="bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-t-lg">
         <CardTitle className="flex items-center gap-3 text-xl">
           <CalendarDays className="h-6 w-6" />
-          申請排休
+          建立排休/請假排休
         </CardTitle>
         <CardDescription className="text-green-100">
-          請填寫完整資訊以申請排休
+          請填寫完整資訊以建立排休/請假排休
         </CardDescription>
       </CardHeader>
       
@@ -507,7 +507,7 @@ const LeaveRequestForm: React.FC = () => {
             ) : (
               <div className="flex items-center gap-2">
                 <CalendarDays className="h-5 w-5" />
-                提交排休申請
+                提交排休建立排休/請假
               </div>
             )}
           </Button>

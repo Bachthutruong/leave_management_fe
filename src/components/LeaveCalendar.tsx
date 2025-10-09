@@ -339,7 +339,7 @@ const LeaveCalendar: React.FC<LeaveCalendarProps> = ({
             <div className="text-center">
               <CalendarIcon className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-gray-400 mb-4" />
               <p className="text-gray-500 text-sm sm:text-base">沒有排休資料</p>
-              <p className="text-xs sm:text-sm text-gray-400 mt-2">請稍後再試或建立新的排休申請</p>
+              <p className="text-xs sm:text-sm text-gray-400 mt-2">請稍後再試或建立新的排休建立排休/請假</p>
               <Button 
                 onClick={fetchEvents} 
                 className="mt-4 bg-blue-600 hover:bg-blue-700 text-white"

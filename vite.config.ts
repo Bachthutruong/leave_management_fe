@@ -15,7 +15,7 @@ export default defineConfig({
     proxy: {
       '/api': {
         // target: 'http://localhost:5002',
-        target: 'https://leave-management-be-8rhi.onrender.com',
+        target: 'https://api-leave-management.jiudi.cloud',
         changeOrigin: true,
       },
     },

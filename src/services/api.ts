@@ -5,7 +5,7 @@ import { Employee, LeaveRequest, AuthResponse, LoginCredentials, LeaveStatistics
 // Create axios instance
 const api = axios.create({
   // baseURL: 'http://localhost:5002/api',
-  baseURL: 'https://leave-management-be-8rhi.onrender.com/api',
+  baseURL: 'https://api-leave-management.jiudi.cloud/api',
   headers: {
     'Content-Type': 'application/json',
   },

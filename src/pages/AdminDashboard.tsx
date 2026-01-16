@@ -35,6 +35,7 @@ import {
   Eye,
   ChevronLeft,
   ChevronRight,
+  Upload,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 // import { format, parseISO } from 'date-fns';
@@ -58,7 +59,10 @@ const EmployeeManagement: React.FC = () => {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Dialog states
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -135,6 +139,51 @@ const EmployeeManagement: React.FC = () => {
       toast.error('無法刪除員工');
     } finally {
       setEmployeeToDelete(null);
+    }
+  };
+
+
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    const toastId = toast.loading('正在匯入員工資料...');
+
+    try {
+      const response = await employeeAPI.import(file);
+      
+      const { success, failed, errors } = response.results;
+      
+      if (failed > 0) {
+        toast.dismiss(toastId);
+        toast.error(`匯入完成: ${success} 成功, ${failed} 失敗`, { duration: 5000 });
+        if (errors.length > 0) {
+          console.error('Import errors:', errors);
+          // Show first few errors
+          errors.slice(0, 3).forEach((err: string) => toast.error(err));
+        }
+      } else {
+        toast.dismiss(toastId);
+        toast.success(`成功匯入 ${success} 位員工`);
+      }
+      
+      loadEmployees();
+    } catch (error) {
+      console.error('Import failed:', error);
+      toast.dismiss(toastId);
+      toast.error('匯入失敗，請檢查檔案格式');
+    } finally {
+      setIsImporting(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -215,6 +264,30 @@ const EmployeeManagement: React.FC = () => {
         >
           <Plus className="h-4 w-4 mr-2" />
           新增員工
+        </Button>
+      </div>
+      
+      {/* Import/Export Controls */}
+      <div className="flex justify-end gap-2">
+        <input 
+          type="file" 
+          ref={fileInputRef} 
+          onChange={handleFileChange} 
+          accept=".xlsx, .xls" 
+          className="hidden" 
+        />
+        <Button
+          variant="outline"
+          onClick={handleImportClick}
+          disabled={isImporting}
+          className="border-green-600 text-green-600 hover:bg-green-50"
+        >
+          {isImporting ? (
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent mr-2" />
+          ) : (
+            <Upload className="h-4 w-4 mr-2" />
+          )}
+          匯入Excel
         </Button>
       </div>
 

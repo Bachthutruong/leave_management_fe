@@ -4,7 +4,7 @@ import { Employee, LeaveRequest, AuthResponse, LoginCredentials, LeaveStatistics
 
 // Create axios instance
 const api = axios.create({
-  // baseURL: 'http://localhost:5002/api',
+  // baseURL: 'http://localhost:5005/api',
   baseURL: 'https://api-leave-management.jiudi.cloud/api',
   headers: {
     'Content-Type': 'application/json',
@@ -78,6 +78,17 @@ export const employeeAPI = {
   
   getByDepartment: async (department: string): Promise<Employee[]> => {
     const response = await api.get(`/employees/department/${department}`);
+    return response.data;
+  },
+  
+  import: async (file: File): Promise<any> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post('/employees/import', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return response.data;
   },
 };
